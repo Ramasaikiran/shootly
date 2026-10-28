@@ -1,0 +1,13 @@
+# Shootly (working name)
+
+> Booking marketplace for photographers and videographers in India. Pilot city: Hyderabad. Customers see the creator, the all-in price, what is delivered and by when before paying.
+
+## Key facts
+- A booking is confirmed only after the creator accepts and payment is verified.
+- Creators are ID-verified and manually reviewed before listing.
+- Packages state hours, deliverables, delivery deadline and cancellation terms.
+- If a creator cancels a confirmed booking, the customer gets replacement options or a full refund.
+- Shoot types: birthdays, family, graduations, reels, product, restaurant content.
+
+## Pages
+- [Home](https://www.example.com/): what the service is, how booking works, FAQ

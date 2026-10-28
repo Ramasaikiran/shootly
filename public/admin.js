@@ -1,0 +1,24 @@
+import {get,post,guard,toast,wireActions} from "./app.js";import {bookingCard,esc,needsAction} from "./components.js";import {tabsUI,stat,skeleton,empty,section,confirmDialog} from "./panel.js";
+const me=await guard("admin");if(!me)throw new Error("redirecting");const app=document.querySelector("#app");
+const PN=(id,body,hidden=true)=>`<section role="tabpanel" id="pn-${id}" aria-labelledby="tab-${id}" ${hidden?"hidden":""}>${body}</section>`;
+app.innerHTML=`<div class="phead"><div><h1 class="h1">Operations</h1><p class="mute">Approve creators, resolve problems, keep bookings moving.</p></div></div><div id="tabs"></div>
+${PN("overview",'<div class="stats" id="stats"></div><div id="queue">'+skeleton(2)+"</div>",false)}
+${PN("creators",`<div class="fbar"><label>Search by name<input id="q" type="search" placeholder="Type a name"></label><div class="pills" role="group" aria-label="Status">${["all","pending","verified","suspended"].map(s=>`<button type="button" class="pill" data-s="${s}" aria-pressed="${s==="all"}">${s[0].toUpperCase()+s.slice(1)}</button>`).join("")}</div></div><div class="card scroll" id="cr"></div>`)}
+${PN("bookings",`<div class="fbar"><div class="pills" role="group" aria-label="Booking status">${["all","needs action","active","past"].map(s=>`<button type="button" class="pill" data-b="${s}" aria-pressed="${s==="all"}">${s[0].toUpperCase()+s.slice(1)}</button>`).join("")}</div></div><div id="bl"></div>`)}`;
+const tabs=tabsUI(document.querySelector("#tabs"),[{id:"overview",label:"Overview"},{id:"creators",label:"Creators"},{id:"bookings",label:"Bookings"}]);
+let O=null,B=[],cs="all",cq="",bs="all";
+const crow=c=>`<tr><td data-l="Name">${esc(c.name)}</td><td data-l="Area">${esc(c.area)}</td><td data-l="Status"><span class="tag ${c.ver==="verified"?"ok":c.ver==="pending"?"wait":"no"}">${esc(c.ver)}</span></td><td data-l="Packages">${c.packages}</td><td data-l="Action">${c.ver==="verified"?`<button class="btn bad sm" data-cr="${esc(c.id)}" data-do="suspend">Suspend</button>`:`<button class="btn sm" data-cr="${esc(c.id)}" data-do="approve">${c.ver==="pending"?"Approve after ID check":"Reinstate"}</button>`}</td></tr>`;
+const ctable=l=>l.length?`<table class="tbl"><thead><tr><th>Name</th><th>Area</th><th>Status</th><th>Packages</th><th>Action</th></tr></thead><tbody>${l.map(crow).join("")}</tbody></table>`:empty({icon:"search",title:"No creators match",text:"Change the search or the status filter."});
+function render(){const pend=O.creators.filter(c=>c.ver==="pending"),att=B.filter(b=>needsAction(b,"admin"));
+ document.querySelector("#stats").innerHTML=stat("Awaiting approval",pend.length,"Creators",pend.length>0)+stat("Open problems",att.length,"Disputes and cancellations",att.length>0)+stat("Bookings",O.stats.bookings)+stat("Completed",O.stats.completed);
+ document.querySelector("#queue").innerHTML=(pend.length||att.length)?(pend.length?`<h2 class="sec2">Creators to approve <span class="tag wait">${pend.length}</span></h2><div class="card scroll">${ctable(pend)}</div>`:"")+section("Bookings needing a decision",att,b=>bookingCard(b,"admin"),"wait"):empty({icon:"check",title:"All clear",text:"No creators waiting and no open problems."});
+ document.querySelector("#cr").innerHTML=ctable(O.creators.filter(c=>(cs==="all"||c.ver===cs)&&c.name.toLowerCase().includes(cq)));
+ const f=B.filter(b=>bs==="all"||(bs==="needs action"?needsAction(b,"admin"):bs==="active"?["Requested","Accepted","Confirmed","In progress"].includes(b.status):["Completed","Declined","Cancelled","Refunded","Disputed"].includes(b.status)&&!needsAction(b,"admin")));
+ document.querySelector("#bl").innerHTML=f.length?`<div class="list">${f.map(b=>bookingCard(b,"admin")).join("")}</div>`:empty({icon:"folder",title:"No bookings here",text:"Nothing matches this filter yet."});
+ tabs.counts({overview:pend.length+att.length,creators:pend.length},["overview","creators"])}
+async function load(){[O,{bookings:B}]=await Promise.all([get("/api/admin/overview"),get("/api/bookings")]);render()}
+document.querySelector("#q").addEventListener("input",e=>{cq=e.target.value.trim().toLowerCase();render()});
+app.addEventListener("click",async e=>{const p=e.target.closest(".pill");if(p){const grp=p.parentElement;grp.querySelectorAll(".pill").forEach(x=>x.setAttribute("aria-pressed",String(x===p)));if(p.dataset.s)cs=p.dataset.s;if(p.dataset.b)bs=p.dataset.b;render();return}
+ const t=e.target.closest("[data-cr]");if(!t)return;if(t.dataset.do==="suspend"&&!(await confirmDialog("Suspend this creator? They are unlisted straight away.","Suspend")))return;
+ try{await post(`/api/admin/creators/${t.dataset.cr}/${t.dataset.do}`);toast(t.dataset.do==="approve"?"Creator approved and listed.":"Creator suspended.")}catch(er){toast(er.message)}load()});
+wireActions(app,load);await load();

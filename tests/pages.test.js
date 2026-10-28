@@ -1,0 +1,70 @@
+import test from "node:test";import assert from "node:assert/strict";import fs from "node:fs";import path from "node:path";import {fileURLToPath,pathToFileURL} from "node:url";import {JSDOM} from "jsdom";
+import {makeWorld,seedBasics,startServer,PW} from "./helpers.js";
+const PUB=path.join(path.dirname(fileURLToPath(import.meta.url)),"..","public"),realFetch=globalThis.fetch,realSI=globalThis.setInterval;let n=0;
+globalThis.setInterval=(f,ms)=>{const t=realSI(f,ms);t.unref?.();return t};
+async function env(){const w=makeWorld(),o=seedBasics(w),srv=await startServer(w);const logins={};
+ async function as(email){const c=srv.client();const r=await c.post("/api/auth/login",{email,password:PW});assert.equal(r.status,200);return c.sid}
+ async function open(file,{sid="",search=""}={}){const dom=new JSDOM(fs.readFileSync(path.join(PUB,file),"utf8"),{url:srv.base+"/"+file+search,pretendToBeVisual:true}),win=dom.window;
+  win.HTMLDialogElement.prototype.showModal=function(){this.setAttribute("open","")};win.HTMLDialogElement.prototype.close=function(){this.removeAttribute("open");this.dispatchEvent(new win.Event("close"))};
+  const redirects=[];Object.assign(globalThis,{document:win.document,FormData:win.FormData,window:win,location:{replace:u=>redirects.push(u),assign:u=>redirects.push(u),search,pathname:"/"+file,href:""}});
+  globalThis.fetch=(u,o={})=>String(u).startsWith("/")?realFetch(srv.base+u,{...o,headers:{...(o.headers||{}),...(sid?{Cookie:"sid="+sid}:{})}}):realFetch(u,o);
+  let err=null;try{await import(pathToFileURL(path.join(PUB,file.replace(".html",".js"))).href+"?v="+(++n))}catch(e){err=e}
+  const q=s=>win.document.querySelector(s),qa=s=>[...win.document.querySelectorAll(s)];
+  const until=async(f,ms=2500)=>{const t=Date.now();while(Date.now()-t<ms){try{const v=f();if(v)return v}catch{}await new Promise(r=>setTimeout(r,10))}throw new Error("timeout waiting: "+f)};
+  const click=el=>el.dispatchEvent(new win.MouseEvent("click",{bubbles:true})),set=(el,v)=>{el.value=v;el.dispatchEvent(new win.Event("change",{bubbles:true}));el.dispatchEvent(new win.Event("input",{bubbles:true}))};
+  return{win,q,qa,until,click,set,redirects,err}}
+ return{w,o,srv,as,open,close:()=>srv.close()}}
+const tabText=(p,id)=>p.q(`#tab-${id}`).textContent;
+
+test("panels: signed-out and wrong-role visitors are redirected",async()=>{const e=await env();let p=await e.open("customer.html");assert.deepEqual(p.redirects,["auth.html?next=customer.html"]);assert.ok(p.err);
+ p=await e.open("customer.html",{sid:await e.as("aarav@t.test")});assert.deepEqual(p.redirects,["creator.html"]);p=await e.open("admin.html",{sid:await e.as("cathy@t.test")});assert.deepEqual(p.redirects,["customer.html"]);await e.close()});
+test("customer panel: greeting, creators, filters, empty state",async()=>{const e=await env(),p=await e.open("customer.html",{sid:await e.as("cathy@t.test")});assert.equal(p.err,null);
+ assert.equal(p.q(".h1").textContent,"Hi Cathy");assert.equal(p.qa("#cl .cc").length,2);assert.equal(p.q("#count").textContent,"2 verified creators");assert.equal(p.q("#header, #hd .tag").textContent.trim(),"customer panel");
+ p.set(p.q('[name="area"]'),"Gachibowli");await p.until(()=>p.qa("#cl .cc").length===1);assert.ok(p.q("#cl").textContent.includes("Bina"));
+ p.set(p.q('[name="area"]'),"");p.click(p.q('.pill[data-type="Reel"]'));await p.until(()=>p.q("#cl .empty"));assert.equal(p.q('.pill[data-type="Reel"]').getAttribute("aria-pressed"),"true");
+ p.click(p.q('[data-goto="clear"]'));await p.until(()=>p.qa("#cl .cc").length===2);assert.equal(p.q('.pill[data-type=""]').getAttribute("aria-pressed"),"true");
+ assert.ok(p.q("#bl .empty").textContent.includes("No bookings yet"));await e.close()});
+test("customer panel: pre-selects shoot type from the landing link",async()=>{const e=await env(),p=await e.open("customer.html",{sid:await e.as("cathy@t.test"),search:"?type=Family"});assert.equal(p.q('.pill[data-type="Family"]').getAttribute("aria-pressed"),"true");await e.close()});
+test("customer panel: hostile creator name is rendered as text",async()=>{const e=await env();e.o.a.c.name='<img src=x onerror="alert(1)"> Evil';const p=await e.open("customer.html",{sid:await e.as("cathy@t.test")});assert.equal(p.qa("#cl img").length,0);assert.ok(p.q("#cl").textContent.includes("<img"));await e.close()});
+test("booking journey across all three panels",async()=>{const e=await env(),cs=await e.as("cathy@t.test"),as=await e.as("aarav@t.test"),ad=await e.as("admin@t.test");
+ let c=await e.open("customer.html",{sid:cs});c.click(c.q('#cl .cc [data-act="book"]'));await c.until(()=>c.q("#dlg[open]"));assert.ok(c.q("#dlg").textContent.includes("Free to request"));
+ c.q('#bf [name="date"]').value="2020-01-01";c.q("#bf").dispatchEvent(new c.win.Event("submit",{bubbles:true,cancelable:true}));await c.until(()=>c.q("#derr").textContent);assert.equal(c.q("#derr").textContent,"Pick a date from today onwards.");
+ c.q('#bf [name="date"]').value="2026-11-02";c.q("#bf").dispatchEvent(new c.win.Event("submit",{bubbles:true,cancelable:true}));await c.until(()=>c.qa("#bl article").length===1);
+ assert.equal(c.q("#tab-bookings").getAttribute("aria-selected"),"true");assert.equal(c.q("#bl article .tag").textContent,"Requested");assert.match(tabText(c,"bookings"),/1/);
+ let a=await e.open("creator.html",{sid:as});assert.equal(a.err,null);await a.until(()=>a.qa("#l-requests article").length===1);assert.ok(a.q("#stats").textContent.includes("New requests"));assert.match(tabText(a,"requests"),/1/);
+ a.click(a.q('#l-requests [data-act="decline"]'));await a.until(()=>a.q("dialog.cf[open]"));a.click(a.q('dialog.cf [data-v="0"]'));await new Promise(r=>setTimeout(r,50));assert.equal(a.qa("#l-requests article").length,1);
+ a.click(a.q('#l-requests [data-act="accept"]'));await a.until(()=>a.qa("#l-upcoming article").length===1);assert.equal(a.qa("#l-requests article").length,0);assert.ok(a.q("#l-requests .empty"));
+ c=await e.open("customer.html",{sid:cs});await c.until(()=>c.q("#bl .attn"));assert.ok(c.q("#bl").textContent.includes("Needs your attention"));assert.match(tabText(c,"bookings"),/1/);
+ c.click(c.q('#bl [data-act="pay"]'));await c.until(()=>c.qa("#bl article .tag").some(t=>t.textContent==="Confirmed"));assert.equal(c.qa("#bl .attn").length,0);
+ const ov=await e.open("admin.html",{sid:ad});await ov.until(()=>ov.q("#stats .stat"));assert.ok(ov.q("#stats").textContent.includes("Bookings"));await e.close()});
+test("creator panel: package form shows field errors, adds a package, checklist updates",async()=>{const e=await env(),p=await e.open("creator.html",{sid:await e.as("aarav@t.test")});await p.until(()=>p.q("#pk .card"));
+ const set=(k,v)=>{p.q(`#pf [name="${k}"]`).value=v};Object.entries({n:"Reel",h:"1",d:"One short reel",days:"2",p:"5"}).forEach(([k,v])=>set(k,v));p.q("#pf").dispatchEvent(new p.win.Event("submit",{bubbles:true,cancelable:true}));
+ await p.until(()=>p.q('[data-for="p"]').textContent);assert.match(p.q('[data-for="p"]').textContent,/₹500/);set("p","3000");p.q("#pf").dispatchEvent(new p.win.Event("submit",{bubbles:true,cancelable:true}));await p.until(()=>p.qa("#pk .card").length===3);assert.ok(p.q("#pk").textContent.includes("you earn ₹2,640"));await e.close()});
+test("creator panel: new unverified creator sees the checklist and a helpful empty state",async()=>{const e=await env();const c=e.srv.client();await c.post("/api/auth/register",{agree:true,name:"Nia Rao",email:"nia@t.test",password:PW,role:"creator",area:"Madhapur",types:["Reel"]});
+ const p=await e.open("creator.html",{sid:c.sid});await p.until(()=>p.q("#prof .check"));assert.equal(p.qa("#prof .check li.ok").length,0);assert.ok(p.q("#badge").textContent.includes("pending"));assert.ok(p.q("#l-requests .empty").textContent.includes("not listed yet"));await e.close()});
+test("admin panel: approve a pending creator, filter, suspend with confirmation",async()=>{const e=await env(),c=e.srv.client();await c.post("/api/auth/register",{agree:true,name:"Nia Rao",email:"nia@t.test",password:PW,role:"creator",area:"Madhapur",types:["Reel"]});
+ const p=await e.open("admin.html",{sid:await e.as("admin@t.test")});await p.until(()=>p.q("#queue table"));assert.ok(p.q("#queue").textContent.includes("Nia Rao"));assert.match(tabText(p,"creators"),/1/);
+ p.click(p.q('#queue [data-do="approve"]'));await p.until(()=>!p.q("#queue table"));assert.ok(p.q("#queue .empty").textContent.includes("All clear"));
+ p.click(p.q('.pill[data-s="pending"]'));assert.ok(p.q("#cr .empty"));p.click(p.q('.pill[data-s="verified"]'));assert.equal(p.qa("#cr tbody tr").length,3);
+ const q=p.q("#q");q.value="nia";q.dispatchEvent(new p.win.Event("input",{bubbles:true}));assert.equal(p.qa("#cr tbody tr").length,1);
+ p.click(p.q('#cr [data-do="suspend"]'));await p.until(()=>p.q("dialog.cf[open]"));p.click(p.q('dialog.cf [data-v="1"]'));await p.until(()=>p.qa("#cr tbody tr").length===0);assert.equal(e.w.store.d.creators.find(x=>x.name==="Nia Rao").ver,"suspended");await e.close()});
+test("admin panel: a dispute shows in the queue and can be refunded after confirmation",async()=>{const e=await env(),s=e.w.service,o=e.o;
+ const b=s.makeBooking(o.cust,{creatorId:o.a.c.id,pk:0,date:"2026-11-02",slot:"10:00",type:"Birthday"});const bd=e.w.store.d.bookings[0];await s.act(o.a.u,b.id,"accept");const ord=await s.createOrder(o.cust,b.id),k=e.w.gateway.mockCheckout(ord.orderId);await s.verifyPayment(o.cust,{bookingId:b.id,...k});
+ bd.status="Completed";bd.delivery={due:"2026-11-09",sent:true,url:"https://f.test/x",at:e.w.clock.now().toISOString()};await s.act(o.cust,b.id,"issue",{reason:"Half the photos are missing"});
+ const p=await e.open("admin.html",{sid:await e.as("admin@t.test")});await p.until(()=>p.q("#queue .attn"));assert.ok(p.q("#queue").textContent.includes("Customer reported an issue"));assert.ok(p.q("#stats .stat.hot"));
+ p.click(p.q('#queue [data-act="resolve-refund"]'));await p.until(()=>p.q("dialog.cf[open]"));p.click(p.q('dialog.cf [data-v="1"]'));await p.until(()=>bd.status==="Refunded");assert.equal(e.w.gateway.refunds.length,1);await e.close()});
+
+test("browse page is public: lists creators without an account, filters, syncs the URL",async()=>{const e=await env(),p=await e.open("browse.html");assert.equal(p.err,null);assert.deepEqual(p.redirects,[]);
+ assert.equal(p.q(".h1").textContent,"Find a photographer in Hyderabad");assert.equal(p.qa("#cl .cc").length,2);assert.equal(p.q("#count").textContent,"2 verified creators");
+ p.click(p.q('.pill[data-type="Family"]'));await p.until(()=>p.q("#count").textContent&&p.qa("#cl .cc").length===2);p.set(p.q('[name="area"]'),"Gachibowli");await p.until(()=>p.qa("#cl .cc").length===1);assert.ok(p.q("#cl").textContent.includes("Bina"));
+ p.set(p.q('[name="area"]'),"");p.click(p.q('.pill[data-type="Reel"]'));await p.until(()=>p.q("#cl .empty"));p.click(p.q('[data-goto="clear"]'));await p.until(()=>p.qa("#cl .cc").length===2);await e.close()});
+test("browse page: landing form params pre-filter results",async()=>{const e=await env(),p=await e.open("browse.html",{search:"?type=Family&area=Madhapur&date=2026-11-02"});assert.equal(p.q('.pill[data-type="Family"]').getAttribute("aria-pressed"),"true");assert.equal(p.q('[name="area"]').value,"Madhapur");assert.equal(p.q('[name="date"]').value,"2026-11-02");await p.until(()=>p.qa("#cl .cc").length===1);assert.ok(p.q("#count").textContent.includes("free on 2026-11-02"));
+ const q=await e.open("browse.html",{search:"?type=<script>&area=Mars&date=bad"});assert.equal(q.q('.pill[data-type=""]').getAttribute("aria-pressed"),"true");assert.equal(q.q('[name="area"]').value,"");await e.close()});
+test("browse page: Request while signed out sends the visitor to register, keeping their choice",async()=>{const e=await env(),p=await e.open("browse.html",{search:"?type=Birthday&date=2026-11-02"});await p.until(()=>p.qa("#cl .cc").length>0);p.click(p.q('#cl [data-act="book"]'));await p.until(()=>p.redirects.length);
+ const u=new URL(p.redirects[0],"http://x");assert.equal(u.pathname,"/auth.html");assert.equal(u.searchParams.get("mode"),"register");const next=u.searchParams.get("next");assert.match(next,/^customer\.html\?book=c\d+~0&date=2026-11-02&type=Birthday$/);await e.close()});
+test("browse page: creators and admins get a clear message, customers get the booking dialog",async()=>{const e=await env();let p=await e.open("browse.html",{sid:await e.as("aarav@t.test")});await p.until(()=>p.qa("#cl .cc").length>0);p.click(p.q('#cl [data-act="book"]'));await p.until(()=>p.win.document.querySelector(".toast"));assert.match(p.win.document.querySelector(".toast").textContent,/customer account/);assert.deepEqual(p.redirects,[]);
+ p=await e.open("browse.html",{sid:await e.as("cathy@t.test")});await p.until(()=>p.qa("#cl .cc").length>0);p.click(p.q('#cl [data-act="book"]'));await p.until(()=>p.q("#dlg[open]"));assert.ok(p.q("#dlg").textContent.includes("Free to request"));await e.close()});
+test("customer panel: resumes a booking after sign-up via ?book= and keeps the date",async()=>{const e=await env(),cid=e.o.a.c.id,p=await e.open("customer.html",{sid:await e.as("cathy@t.test"),search:`?book=${cid}~0&date=2026-11-02&type=Birthday`});await p.until(()=>p.q("#dlg[open]"));
+ assert.ok(p.q("#dlg").textContent.includes("Aarav"));assert.equal(p.q('#bf [name="date"]').value,"2026-11-02");assert.equal(p.q('#bf [name="type"]').value,"Birthday");
+ p.q("#bf").dispatchEvent(new p.win.Event("submit",{bubbles:true,cancelable:true}));await p.until(()=>p.qa("#bl article").length===1);assert.equal(p.q("#tab-bookings").getAttribute("aria-selected"),"true");
+ const bad=await e.open("customer.html",{sid:await e.as("carl@t.test"),search:"?book=zzz~9"});assert.equal(bad.err,null);assert.equal(bad.q("#dlg[open]"),null);await e.close()});
