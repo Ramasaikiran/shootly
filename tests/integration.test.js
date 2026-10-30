@@ -39,7 +39,7 @@ test("authz: anonymous 401, IDOR 404, wrong role 403",async()=>{const{srv,w,o}=a
 test("flow: new creator → admin approves → package → booking → payment → confirmed",async()=>{const{srv,w}=await setup();const cr=srv.client();
  assert.equal((await cr.post("/api/auth/register",{agree:true,name:"Dev <img src=x onerror=alert(1)>",email:"dev@t.test",password:PW,role:"creator",area:"Madhapur",types:["Birthday"]})).status,200);
  assert.equal((await srv.client().get("/api/creators")).json.creators.length,2);const mine=(await cr.get("/api/me")).json.creator;assert.equal(mine.ver,"pending");assert.ok(!mine.name.includes("<"));
- const admin=await login(srv,"admin@t.test");assert.equal((await admin.post(`/api/admin/creators/${mine.id}/approve`)).status,200);
+ const admin=await login(srv,"admin@t.test");assert.equal((await admin.post(`/api/admin/creators/${mine.id}/approve`)).status,409);{const du=w.store.d.users.find(u=>u.email==="dev@t.test");du.emailVerified=true;w.store.d.creators.find(x=>x.id===mine.id).idDoc={file:"x.jpg",ext:"jpg",at:"2026-01-01"}}assert.equal((await admin.post(`/api/admin/creators/${mine.id}/approve`)).status,200);
  assert.equal((await cr.post("/api/creator/packages",{n:"Quick",h:1,d:"20 edited photos",days:2,p:3000})).status,200);assert.equal((await cr.post("/api/creator/packages",{n:"Quick",h:1,d:"20 edited photos",days:2,p:1})).status,400);
  const list=(await srv.client().get("/api/creators?type=Birthday")).json.creators;assert.equal(list.length,3);
  const cu=await login(srv,"cathy@t.test"),b=(await cu.post("/api/bookings",{creatorId:mine.id,pk:0,date:"2026-11-05",slot:"16:00",type:"Birthday",price:1})).json.booking;assert.equal(b.price,3000);

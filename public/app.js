@@ -8,6 +8,7 @@ export const todayIST=()=>new Date(Date.now()+19800000).toISOString().slice(0,10
 export function toast(m){const t=document.createElement("div");t.className="toast";t.setAttribute("role","status");t.textContent=m;document.body.append(t);setTimeout(()=>t.remove(),3000)}
 export async function guard(role){try{const me=await get("/api/me");if(me.user.role!==role){location.replace(home(me.user.role));return null}
  document.querySelector("#hd").innerHTML=`<div class="wrap bar"><a class="logo" href="index.html">Shootly</a><div class="links"><span class="tag">${esc(role)} panel</span><span class="mute">${esc(me.user.name)}</span><button class="btn alt sm" id="out">Sign out</button></div></div>`;
+ if(!me.user.emailVerified){document.querySelector("#hd").insertAdjacentHTML("afterend",`<div class="banner" role="status"><div class="wrap"><span>Please verify your email (${esc(me.user.email)}). We sent you a link.</span> <button type="button" class="btn alt sm" id="rv">Resend link</button></div></div>`);document.querySelector("#rv").onclick=async e=>{e.target.disabled=true;try{await post("/api/auth/resend-verification");toast("Link sent. Check your inbox.")}catch(er){toast(er.message)}}}
  document.querySelector("#out").onclick=async()=>{await post("/api/auth/logout");location.href="auth.html"};return me}
  catch(e){if(e.status===401){location.replace("auth.html?next="+encodeURIComponent(location.pathname.replace(/^\//,"")));return null}throw e}}
 const loadCheckout=()=>window.Razorpay?Promise.resolve():new Promise((ok,no)=>{const s=document.createElement("script");s.src="https://checkout.razorpay.com/v1/checkout.js";s.onload=ok;s.onerror=()=>no(new Error("Could not load the payment window."));document.head.append(s)});
@@ -18,11 +19,13 @@ export async function payBooking(b){const o=await post("/api/payments/order",{bo
 export async function doAction(act,id,card,extra={}){
  const v=s=>card?.querySelector(s)?.value;
  if(act==="pay")return payBooking({id});
- if(act==="review")return post(`/api/bookings/${id}/review`,{rating:+v("[data-rating]")});
+ if(act==="review")return post(`/api/bookings/${id}/review`,{rating:+v("[data-rating]"),comment:v("[data-comment]")||""});
  if(act==="issue")return post(`/api/bookings/${id}/issue`,{reason:v("[data-reason]")});
  if(act==="deliver")return post(`/api/bookings/${id}/deliver`,{url:v("[data-url]")});
  if(act==="resolve-refund")return post(`/api/bookings/${id}/resolve`,{decision:"refund"});
  if(act==="resolve-reject")return post(`/api/bookings/${id}/resolve`,{decision:"reject"});
  return post(`/api/bookings/${id}/${act}`,extra)}
 export function wireActions(root,reload){root.addEventListener("click",async e=>{const t=e.target.closest("[data-act]");if(!t||t.dataset.act==="book")return;if(t.dataset.confirm&&!(await confirmDialog(t.dataset.confirm)))return;t.disabled=true;
- try{const r=await doAction(t.dataset.act,t.dataset.b,t.closest("article"),t.dataset.c?{creatorId:t.dataset.c}:{});toast(t.dataset.act==="pay"&&r.refunded?"Slot was taken. Your payment is being refunded.":"Done.")}catch(er){toast(er.message)}await reload()})}
+ try{const r=await doAction(t.dataset.act,t.dataset.b,t.closest("article"),t.dataset.c?{creatorId:t.dataset.c}:{});toast(t.dataset.act==="pay"&&r.refunded?"Slot was taken. Your payment is being refunded.":"Done.")}catch(er){toast(er.message)}try{await reload()}catch{toast("Could not refresh. Reload the page.")}})}
+
+export const fileB64=f=>new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(String(r.result));r.onerror=()=>no(new Error("Could not read that file."));r.readAsDataURL(f)});

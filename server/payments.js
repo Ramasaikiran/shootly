@@ -5,17 +5,20 @@ export const verifyCheckoutSignature=(secret,orderId,paymentId,sig)=>!!sig&&safe
 export const verifyWebhookSignature=(secret,raw,sig)=>!!sig&&safeEq(hmac(secret,raw),sig);
 export class RazorpayGateway{
 constructor({keyId,keySecret,webhookSecret,fetchImpl=fetch}){Object.assign(this,{keyId,keySecret,webhookSecret,fetchImpl});this.mock=false}
-async #call(path,body){const r=await this.fetchImpl("https://api.razorpay.com/v1"+path,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Basic "+Buffer.from(`${this.keyId}:${this.keySecret}`).toString("base64")},body:JSON.stringify(body)});
+async #call(path,body){const r=await this.fetchImpl("https://api.razorpay.com/v1"+path,{method:body?"POST":"GET",headers:{"Content-Type":"application/json",Authorization:"Basic "+Buffer.from(`${this.keyId}:${this.keySecret}`).toString("base64")},body:body?JSON.stringify(body):undefined});
 const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j?.error?.description||"Payment provider error");return j}
 createOrder({amount,receipt}){return this.#call("/orders",{amount,currency:"INR",receipt}).then(o=>({id:o.id}))}
 refund(paymentId,amount){return this.#call(`/payments/${paymentId}/refund`,{amount}).then(r=>({id:r.id}))}
+// Before a retry: did an earlier attempt actually succeed at Razorpay even though we never saw the reply?
+async findRefund(paymentId,amount){const j=await this.#call(`/payments/${paymentId}/refunds`);const r=(j.items||[]).find(x=>x.amount>=amount&&x.status!=="failed");return r?{id:r.id}:null}
 verifyPayment(o,p,s){return verifyCheckoutSignature(this.keySecret,o,p,s)}
 verifyWebhook(raw,sig){return verifyWebhookSignature(this.webhookSecret,raw,sig)}}
 // Dev and test gateway. Never use in production.
 export class MockGateway{
-constructor(){this.keyId="mock_key";this.secret="mock_secret";this.webhookSecret="mock_webhook";this.mock=true;this.refunds=[]}
+constructor(){this.keyId="mock_key";this.secret="mock_secret";this.webhookSecret="mock_webhook";this.mock=true;this.refunds=[];this.failRefunds=0}
 async createOrder({amount}){return{id:"order_"+randomBytes(8).toString("hex"),amount}}
-async refund(paymentId,amount){this.refunds.push({paymentId,amount});return{id:"rfnd_"+randomBytes(6).toString("hex")}}
+findRefund(paymentId,amount){const r=this.refunds.find(x=>x.paymentId===paymentId&&x.amount>=amount);return Promise.resolve(r?{id:r.id}:null)}
+async refund(paymentId,amount){if(this.failRefunds>0){this.failRefunds--;throw new Error("Mock provider is down")}const id="rfnd_"+randomBytes(6).toString("hex");this.refunds.push({paymentId,amount,id});return{id}}
 verifyPayment(o,p,s){return verifyCheckoutSignature(this.secret,o,p,s)}
 verifyWebhook(raw,sig){return verifyWebhookSignature(this.webhookSecret,raw,sig)}
 mockCheckout(orderId){const paymentId="pay_"+randomBytes(8).toString("hex");return{orderId,paymentId,signature:hmac(this.secret,`${orderId}|${paymentId}`)}}}

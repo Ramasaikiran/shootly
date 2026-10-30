@@ -1,4 +1,4 @@
-import {get,post,guard,toast,wireActions,todayIST} from "./app.js";import {creatorCard,bookingCard,esc,inr} from "./components.js";import {tabsUI,stat,skeleton,empty,section,groupCustomer} from "./panel.js";import {AREAS,TYPES} from "./policy.js";import {openBooking} from "./booking.js";
+import {get,post,guard,toast,wireActions,todayIST} from "./app.js";import {mountAccount} from "./account.js";import {creatorCard,bookingCard,esc,inr} from "./components.js";import {tabsUI,stat,skeleton,empty,section,groupCustomer} from "./panel.js";import {AREAS,TYPES} from "./policy.js";import {openBooking} from "./booking.js";
 const me=await guard("customer");if(!me)throw new Error("redirecting");
 const app=document.querySelector("#app"),dlg=document.querySelector("#dlg"),opt=(l,v)=>l.map(a=>`<option ${a===v?"selected":""}>${esc(a)}</option>`).join("");
 const F={type:"",area:"",date:"",budget:""},QP=new URLSearchParams(location.search);{const t=QP.get("type"),d=QP.get("date");if(TYPES.includes(t))F.type=t;if(/^\d{4}-\d{2}-\d{2}$/.test(d||""))F.date=d}
@@ -6,8 +6,11 @@ app.innerHTML=`<div class="phead"><div><h1 class="h1">Hi ${esc(me.user.name.spli
 <section role="tabpanel" id="pn-find" aria-labelledby="tab-find"><form class="fbar" id="sf"><div class="pills" role="group" aria-label="Shoot type"><button type="button" class="pill" data-type="" aria-pressed="${!F.type}">All shoots</button>${TYPES.map(t=>`<button type="button" class="pill" data-type="${esc(t)}" aria-pressed="${F.type===t}">${esc(t)}</button>`).join("")}</div>
 <div class="row2"><label>Area<select name="area"><option value="">Any area</option>${opt(AREAS)}</select></label><label>Shoot date<input type="date" name="date" min="${todayIST()}"></label><label>Max budget (₹)<input type="number" name="budget" min="0" step="500" placeholder="No limit"></label></div></form>
 <p class="mute" id="count" aria-live="polite"></p><div class="grid" id="cl">${skeleton(3)}</div></section>
-<section role="tabpanel" id="pn-bookings" aria-labelledby="tab-bookings" hidden><div id="bl">${skeleton(2)}</div></section>`;
-const tabs=tabsUI(document.querySelector("#tabs"),[{id:"find",label:"Find a creator"},{id:"bookings",label:"My bookings"}]);
+<section role="tabpanel" id="pn-bookings" aria-labelledby="tab-bookings" hidden><div id="bl">${skeleton(2)}</div></section>
+<section role="tabpanel" id="pn-payments" aria-labelledby="tab-payments" hidden><div id="pl">${skeleton(2)}</div></section>
+<section role="tabpanel" id="pn-account" aria-labelledby="tab-account" hidden><div id="ac"></div></section>`;
+mountAccount(document.querySelector("#ac"),me);
+const tabs=tabsUI(document.querySelector("#tabs"),[{id:"find",label:"Find a creator"},{id:"bookings",label:"My bookings"},{id:"payments",label:"Payments"},{id:"account",label:"Account"}]);
 const sf=document.querySelector("#sf");sf.elements.date.value=F.date;
 async function loadCreators(){const q=new URLSearchParams(Object.entries(F).filter(([,v])=>v));const{creators}=await get("/api/creators?"+q);
  document.querySelector("#count").textContent=`${creators.length} verified creator${creators.length===1?"":"s"}${F.date?" free on "+F.date:""}`;
@@ -15,7 +18,10 @@ async function loadCreators(){const q=new URLSearchParams(Object.entries(F).filt
 async function loadBookings(){const{bookings}=await get("/api/bookings"),g=groupCustomer(bookings);
  document.querySelector("#bl").innerHTML=bookings.length?section("Needs your attention",g.attention,b=>bookingCard(b,"customer"),"wait")+section("Upcoming",g.upcoming,b=>bookingCard(b,"customer"))+section("Past",g.past,b=>bookingCard(b,"customer")):empty({icon:"cal",title:"No bookings yet",text:"Pick a package and send a request. You pay only after the creator accepts.",cta:"Find a creator",act:"find"});
  tabs.counts({bookings:g.attention.length+g.upcoming.length},["bookings"])}
-const reload=()=>Promise.all([loadCreators(),loadBookings()]);
+const PST={paid:["ok","Paid"],refunded:["no","Refunded"],refund_failed:["wait","Refund pending"]};
+async function loadPayments(){const{payments}=await get("/api/payments");
+ document.querySelector("#pl").innerHTML=payments.length?`<div class="card scroll"><table class="tbl"><thead><tr><th>Date</th><th>Creator</th><th>Package</th><th>Amount</th><th>Status</th><th>Receipt</th></tr></thead><tbody>${payments.map(p=>{const[t,l]=PST[p.status]||["wait",p.status];return`<tr><td data-l="Date">${esc((p.paidAt||p.date||"").slice(0,10))}</td><td data-l="Creator">${esc(p.creatorName)}</td><td data-l="Package">${esc(p.pkgName)}</td><td data-l="Amount">${inr(p.amount)}</td><td data-l="Status"><span class="tag ${t}">${l}</span></td><td data-l="Receipt">${p.receipt?`<a href="receipt.html?b=${encodeURIComponent(p.bookingId)}">View receipt</a>`:""}</td></tr>`}).join("")}</tbody></table></div>`:empty({icon:"folder",title:"No payments yet",text:"Payments appear here after a creator accepts and you pay."})}
+const reload=()=>Promise.all([loadCreators(),loadBookings(),loadPayments()]);
 sf.addEventListener("submit",e=>e.preventDefault());
 sf.addEventListener("change",()=>{F.area=sf.elements.area.value;F.date=sf.elements.date.value;F.budget=sf.elements.budget.value;loadCreators()});
 sf.addEventListener("click",e=>{const p=e.target.closest(".pill");if(!p)return;F.type=p.dataset.type;sf.querySelectorAll(".pill").forEach(x=>x.setAttribute("aria-pressed",String(x===p)));loadCreators()});
