@@ -3,7 +3,7 @@ SITE="https://www.example.com/"
 F=lambda t:f'<mark class="fill">[{t}]</mark>'
 CO=F("Company legal name");ADDR=F("Registered address, Hyderabad, Telangana");SUP=F("support@yourdomain.com");GRV=F("Grievance Officer name");GEM=F("grievance@yourdomain.com")
 UPD="26 October 2026"
-FONTS='<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="shared.css">'
+FONTS='<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="shared.css"><script src="fonts.js" defer></script>'
 FAQ=[("How do I book a photographer in Hyderabad?","Pick a shoot type and area, compare verified creators and packages, then send a request. The creator accepts, you pay, and the booking is confirmed."),
 ("When is my booking confirmed?","Only after the creator accepts and your payment is verified. A request or a started payment alone does not confirm a booking."),
 ("What if the photographer cancels?","You are told straight away and shown replacement creators where available. You can accept one or take a full refund."),
@@ -19,7 +19,7 @@ def head(title,desc,path,index=True,ld=""):
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%232442E8'/><circle cx='16' cy='16' r='7' fill='none' stroke='white' stroke-width='3'/></svg>">
 {FONTS}{ld}</head><body><a class="skip" href="#main">Skip to content</a>'''
 HEADER='''<header class="top"><div class="wrap bar"><a class="logo" href="index.html">Shootly</a><nav class="links" aria-label="Main"><a class="l" href="index.html#how">How it works</a><a class="l" href="index.html#faq">FAQ</a><a class="l" href="auth.html">Sign in</a><a class="btn sm" href="browse.html" data-cta="header-browse">Find a photographer</a></nav></div></header>'''
-FOOTER=f'''<footer class="foot"><div class="wrap fgrid"><div><a class="logo" href="index.html">Shootly</a><p>Verified photographers and videographers in Hyderabad. Pilot in progress.</p><p>Payments processed by Razorpay.</p></div>
+FOOTER=f'''<footer class="foot"><div class="wrap fgrid"><div><a class="logo" href="index.html">Shootly</a><p>Verified photographers and videographers across Telangana and Andhra Pradesh.</p><p>Payments processed by Razorpay.</p></div>
 <nav aria-label="Product"><h2>Product</h2><a href="browse.html">Find a photographer</a><a href="index.html#how">How it works</a><a href="index.html#faq">FAQ</a></nav>
 <nav aria-label="Creators"><h2>Creators</h2><a href="auth.html?mode=register">Join as a creator</a><a href="auth.html">Creator sign in</a></nav>
 <nav aria-label="Legal"><h2>Legal</h2><a href="terms.html">Terms and Conditions</a><a href="privacy.html">Privacy Policy</a><a href="refunds.html">Refund and Cancellation Policy</a><a href="contact.html">Contact and grievance</a></nav></div>
@@ -41,26 +41,26 @@ def finder():
     LOC={"Telangana":["Madhapur","Banjara Hills","Gachibowli","Hitech City","Secunderabad","Uppal","LB Nagar"],"Andhra Pradesh":["Vizag","Vijayawada","Guntur","Kurnool"]}
     areas='<option value="">Any area</option>'+"".join(f'<option data-s="{s}">{a}</option>' for s,l in LOC.items() for a in l)
     states='<option value="">Any state</option>'+"".join(f'<option>{s}</option>' for s in LOC)
-    return f'<form class="finder card" action="browse.html" method="get" aria-labelledby="fh"><h2 id="fh">What are you shooting?</h2><fieldset class="rpills"><legend class="sr">Shoot type</legend>{pills}</fieldset><div class="frow"><label>Country<select name="country" disabled><option>India</option></select></label><label>State<select name="state">{states}</select></label></div><div class="frow"><label>Area<select name="area">{areas}</select></label><label>Date<input type="date" name="date" id="fdate"></label></div><button class="btn lg block" type="submit" data-cta="hero-search">See available photographers</button><p class="micro">Free to request. Pay only after the creator accepts.</p></form>'
+    return f'<form class="finder card" action="browse.html" method="get" aria-labelledby="fh"><h2 id="fh">What are you shooting?</h2><fieldset class="rpills"><legend class="sr">Shoot type</legend>{pills}</fieldset><div class="frow"><label>Country<select name="country" disabled><option>India</option></select></label><label>State<select name="state">{states}</select></label></div><div class="frow"><label>Area<select name="area">{areas}</select></label><label>Date<input type="date" name="date" id="fdate"></label></div><button class="btn lg block" type="submit" data-cta="hero-search">Find my photographer</button><p class="micro">Free to request. Pay only after the creator accepts.</p></form>'
 def home():
     faq="".join(f'<details class="q"><summary>{q}</summary><p>{a}</p></details>' for q,a in FAQ)
     cats="".join(f'<a class="cat" href="browse.html?type={n}" data-cta="category-{n.lower()}"><b>{n}</b><span>{d}</span></a>' for n,d in CATS)
     trust="".join(f'<li>{i}<div><b>{t}</b><span>{d}</span></div></li>' for i,t,d in TRUST)
     return f'''<main id="main" class="wrap">
-<section class="hero2"><div class="hcopy"><p class="eyebrow">Hyderabad pilot</p><h1>Book a photographer who <em>shows up.</em></h1><p class="lead">Compare ID-verified photographers and videographers. See the all-in price and delivery date before you pay.</p>
+<section class="hero2"><div class="hcopy"><p class="eyebrow">Telangana · Andhra Pradesh</p><h1>Book a verified photographer. <em>Pay only when they accept.</em></h1><p class="lead">ID-checked photographers and videographers near you. See the all-in price and delivery date first.</p>
 <p class="alt-cta">Are you a photographer? <a href="auth.html?mode=register" data-cta="creator-link">Apply to be listed</a></p></div>{finder()}</section>
 <section class="trust" aria-label="Why book with us"><ul>{trust}</ul></section>
 <section class="sect" id="how" aria-labelledby="h-how"><p class="eyebrow">How it works</p><h2 id="h-how">Three steps. Nothing hidden.</h2>
 <ol class="steps"><li><h3>Search and compare</h3><p class="mute">Choose shoot type, area and date. See packages, prices and delivery times. No account needed.</p></li><li><h3>Send a request</h3><p class="mute">Create a free account to send it. The creator accepts or declines. You are not charged yet.</p></li><li><h3>Pay to confirm</h3><p class="mute">Pay when accepted. Your slot is locked. Get your files by the deadline on your booking.</p></li></ol></section>
 <section class="sect" id="shoots" aria-labelledby="h-shoots"><p class="eyebrow">What we cover</p><h2 id="h-shoots">Pick your kind of shoot</h2><div class="cats">{cats}</div></section>
 <section class="sect" id="pricing" aria-labelledby="h-pr"><p class="eyebrow">Pricing</p><h2 id="h-pr">The price you see is the price you pay</h2><div class="split">
-<div class="card"><h3>For customers</h3><p class="mute">Example: Mini shoot, 1 hr, 25 edited photos, delivered in 3 days.</p><table class="bill"><tr><td>Package price</td><td>₹2,500</td></tr><tr><td>Platform fees for you</td><td>₹0</td></tr><tr class="t"><td>You pay</td><td>₹2,500</td></tr></table><p class="micro">Pilot example. Creators set their own prices. {F("Confirm tax treatment")}</p></div>
-<div class="card"><h3>For creators</h3><p class="mute">Same booking, from your side. We take a platform fee only on completed bookings.</p><table class="bill"><tr><td>Booking value</td><td>₹2,500</td></tr><tr><td>Platform fee (12%)</td><td>− ₹300</td></tr><tr class="t"><td>You earn</td><td>₹2,200</td></tr></table><p class="micro">Pilot fee. Shown before you accept any booking.</p></div></div></section>
+<div class="card"><h3>For customers</h3><p class="mute">Example: Mini shoot, 1 hr, 25 edited photos, delivered in 3 days.</p><table class="bill"><tr><td>Package price</td><td>₹2,500</td></tr><tr><td>Platform fees for you</td><td>₹0</td></tr><tr class="t"><td>You pay</td><td>₹2,500</td></tr></table><p class="micro">Example. Creators set their own prices. {F("Confirm tax treatment")}</p></div>
+<div class="card"><h3>For creators</h3><p class="mute">Same booking, from your side. We take a platform fee only on completed bookings.</p><table class="bill"><tr><td>Booking value</td><td>₹2,500</td></tr><tr><td>Platform fee (12%)</td><td>− ₹300</td></tr><tr class="t"><td>You earn</td><td>₹2,200</td></tr></table><p class="micro">Platform fee. Shown before you accept any booking.</p></div></div></section>
 {proof()}
 <section class="sect" id="faq" aria-labelledby="h-f"><p class="eyebrow">FAQ</p><h2 id="h-f">Questions people ask</h2>{faq}</section>
-<section class="sect" style="text-align:center"><h2>Ready for your shoot?</h2><p class="lede" style="margin-inline:auto">Browse creators now. No account needed until you send a request.</p><a class="btn lg" href="browse.html" data-cta="final-browse">See available photographers</a></section>
+<section class="sect" style="text-align:center"><h2>Ready for your shoot?</h2><p class="lede" style="margin-inline:auto">Browse creators now. No account needed until you send a request.</p><a class="btn lg" href="browse.html" data-cta="final-browse">Find my photographer</a></section>
 <section class="band2" aria-labelledby="h-c"><h2 id="h-c">Photographer or videographer?</h2><p>Get booking requests from people near you. Set your packages, prices and calendar. See payout status on every shoot. We list a small, reviewed group first.</p><a class="btn" href="auth.html?mode=register" data-cta="creator-band">Apply to be listed</a></section></main>
-<div class="sticky"><a class="btn" href="browse.html" data-cta="sticky-browse">See available photographers</a></div><script src="landing.js" defer></script>'''
+<div class="sticky"><a class="btn" href="browse.html" data-cta="sticky-browse">Find my photographer</a></div><script src="landing.js" defer></script>'''
 def ld():
     g=[{"@type":"Organization","@id":SITE+"#org","name":"Shootly","url":SITE,"areaServed":{"@type":"City","name":"Hyderabad"}},{"@type":"WebSite","url":SITE,"name":"Shootly","inLanguage":"en-IN"},
     {"@type":"Service","serviceType":"Photography and videography booking marketplace","provider":{"@id":SITE+"#org"},"areaServed":{"@type":"City","name":"Hyderabad"}},
@@ -99,7 +99,7 @@ LEGAL["privacy"]=("Privacy Policy","What personal data Shootly collects, why, wh
 LEGAL["refunds"]=("Refund and Cancellation Policy","When you get a refund, how to ask for one, and how long it takes.",f'''
 <h2>At a glance</h2><table><thead><tr><th>Situation</th><th>What happens</th></tr></thead><tbody>
 <tr><td>You cancel before the creator accepts</td><td>Nothing was charged. Nothing to refund.</td></tr>
-<tr><td>You cancel after paying, before the shoot starts</td><td>Full refund. {F("Confirm: pilot policy. Add a cut-off if you want one")}</td></tr>
+<tr><td>You cancel after paying, before the shoot starts</td><td>Full refund. {F("Confirm this policy. Add a cut-off if you want one")}</td></tr>
 <tr><td>The creator cancels or does not show</td><td>You choose a replacement creator or a full refund.</td></tr>
 <tr><td>The slot was taken while you were paying</td><td>Automatic full refund.</td></tr>
 <tr><td>Files are late</td><td>Report it after the delivery date. Support follows up. If files do not arrive, you get a refund.</td></tr>

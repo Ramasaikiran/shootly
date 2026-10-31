@@ -75,7 +75,6 @@ function makeBooking(user,{creatorId,pk,date,slot,type,area,address,landmark,lat
  if(!validDate(date))throw E(400,"Pick a valid date.","date");if(date<today())throw E(400,"Pick a date from today onwards.","date");if(date>addDays(today(),365))throw E(400,"Pick a date within a year.","date");
  if(!SLOTS.includes(slot))throw E(400,"Pick a time slot.","slot");if(!c.types.includes(type))throw E(400,"This creator does not offer that shoot type.","type");
  if(!AREAS.includes(area))throw E(400,"Pick the area where the shoot will happen.","area");
- if(stateOf(area)!==stateOf(c.area))throw E(409,`This creator works in ${stateOf(c.area)}. Pick an area in ${stateOf(c.area)}.`,"area");
  address=clean(address,300);if(address.length<10)throw E(400,"Enter the full address where the creator should come.","address");landmark=clean(landmark,80);
  const ph=normPhone(phone||user.phone);if(!ph)throw E(400,"Enter a mobile number the creator can reach on shoot day.","phone");
  const la=lat===""||lat==null?NaN:+lat,lo=lng===""||lng==null?NaN:+lng,pin=la>=6&&la<=38&&lo>=68&&lo<=98?{lat:Math.round(la*1e5)/1e5,lng:Math.round(lo*1e5)/1e5}:null;
@@ -83,7 +82,7 @@ function makeBooking(user,{creatorId,pk,date,slot,type,area,address,landmark,lat
  if(D.bookings.some(o=>o.customerId===user.id&&o.creatorId===c.id&&o.date===date&&o.slot===slot&&LIVE.includes(o.status)))throw E(409,"You already have a request for this slot.");
  const au=D.users.find(x=>x.id===user.id);if(au&&!au.phone)au.phone=ph;
  const b={id:store.id("B"),customerId:user.id,creatorId:c.id,loc:{country:"India",state:stateOf(area),area,address,landmark,...(pin||{})},phone:ph,pkgIdx:pk,pkgId:p.id,pkg:{n:p.n,h:p.h,d:p.d,days:p.days,p:p.p},price:p.p,date,slot,type,status:"Requested",log:["Requested"],delivery:null,review:null,reason:null,offers:null,createdAt:now().toISOString()};D.bookings.push(b);return b}
-function replacements(b){return D.creators.filter(c=>c.ver==="verified"&&c.id!==b.creatorId&&(!b.loc||stateOf(c.area)===b.loc.state)&&c.types.includes(b.type)&&!slotTaken(c.id,b.date,b.slot))
+function replacements(b){return D.creators.filter(c=>c.ver==="verified"&&c.id!==b.creatorId&&c.types.includes(b.type)&&!slotTaken(c.id,b.date,b.slot))
  .map(c=>({c,i:c.pk.findIndex(p=>p.p<=b.price)})).filter(x=>x.i>=0).map(x=>({creatorId:x.c.id,pk:x.i}))}
 // true = refunded, false = provider failed (payment stays refund_failed, retryable), null = nothing to refund
 async function refundPayment(p){if(!p||!["paid","refund_failed"].includes(p.status))return null;

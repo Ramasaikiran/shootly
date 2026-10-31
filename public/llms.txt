@@ -1,6 +1,6 @@
 # Shootly (working name)
 
-> Booking marketplace for photographers and videographers in India. Pilot city: Hyderabad. Customers see the creator, the all-in price, what is delivered and by when before paying.
+> Booking marketplace for photographers and videographers in India. Cities: Hyderabad, Vizag, Vijayawada, Guntur, Kurnool. Customers see the creator, the all-in price, what is delivered and by when before paying.
 
 ## Key facts
 - A booking is confirmed only after the creator accepts and payment is verified.

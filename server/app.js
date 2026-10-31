@@ -1,4 +1,4 @@
-import fs from "node:fs";import path from "node:path";
+import fs from "node:fs";import path from "node:path";import zlib from "node:zlib";import crypto from "node:crypto";
 import {createLimiter} from "./security.js";import {HttpError} from "./service.js";
 const MIME={".html":"text/html; charset=utf-8",".js":"text/javascript; charset=utf-8",".css":"text/css; charset=utf-8",".txt":"text/plain; charset=utf-8",".xml":"application/xml; charset=utf-8",".svg":"image/svg+xml"};
 const CSP="default-src 'self'; script-src 'self' https://checkout.razorpay.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://lumberjack.razorpay.com; frame-src https://api.razorpay.com https://checkout.razorpay.com; frame-ancestors 'none'; base-uri 'none'; form-action 'self'";
@@ -62,9 +62,15 @@ const routes=[
 ["GET","/api/admin/audit",c=>({audit:service.listAudit(A(c),{limit:c.q.limit,action:c.q.action})})]];
 const send=(res,s,o,h={})=>{const b=JSON.stringify(o);res.writeHead(s,{"Content-Type":"application/json; charset=utf-8","Cache-Control":"no-store",...h});res.end(b)};
 const readBody=(r,max)=>new Promise((ok,no)=>{let n=0;const a=[];r.on("data",d=>{n+=d.length;if(n>max){no(E(413,"Request too large."));r.destroy()}else a.push(d)});r.on("end",()=>ok(Buffer.concat(a).toString("utf8")));r.on("error",no)});
+const cache=new Map();
+function asset(f){const st=fs.statSync(f),k=f,c=cache.get(k);if(c&&c.m===st.mtimeMs)return c;const buf=fs.readFileSync(f),ext=path.extname(f),text=ext!==".svg"||true;
+ const e={m:st.mtimeMs,buf,etag:'"'+crypto.createHash("sha1").update(buf).digest("base64url").slice(0,20)+'"',gz:zlib.gzipSync(buf,{level:9}),br:zlib.brotliCompressSync(buf,{params:{[zlib.constants.BROTLI_PARAM_QUALITY]:9}})};cache.set(k,e);return e}
 function serve(req,res,p){if(p==="/")p="/index.html";let f;try{f=path.normalize(path.join(publicDir,decodeURIComponent(p)))}catch{res.writeHead(400);return res.end()}
  if(!f.startsWith(publicDir+path.sep)||!MIME[path.extname(f)]||!fs.existsSync(f)||!fs.statSync(f).isFile()){res.writeHead(404,{"Content-Type":"text/plain"});return res.end("Not found")}
- res.writeHead(200,{"Content-Type":MIME[path.extname(f)],"Cache-Control":"no-cache"});res.end(fs.readFileSync(f))}
+ const a=asset(f),ae=String(req.headers["accept-encoding"]||""),enc=/\bbr\b/.test(ae)?"br":/\bgzip\b/.test(ae)?"gzip":"",body=enc==="br"?a.br:enc==="gzip"?a.gz:a.buf;
+ const h={"Content-Type":MIME[path.extname(f)],"Cache-Control":"no-cache",ETag:a.etag,Vary:"Accept-Encoding"};if(enc)h["Content-Encoding"]=enc;
+ if(req.headers["if-none-match"]===a.etag){res.writeHead(304,{ETag:a.etag,"Cache-Control":"no-cache"});return res.end()}
+ h["Content-Length"]=body.length;res.writeHead(200,h);res.end(req.method==="HEAD"?undefined:body)}
 return async function handler(req,res){
  res.setHeader("X-Content-Type-Options","nosniff");res.setHeader("Content-Security-Policy",CSP);res.setHeader("Referrer-Policy","strict-origin-when-cross-origin");res.setHeader("X-Frame-Options","DENY");if(secure)res.setHeader("Strict-Transport-Security","max-age=31536000");
  const url=new URL(req.url,"http://x"),a=ip(req);

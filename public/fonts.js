@@ -1,0 +1,1 @@
+const l=document.createElement("link");l.rel="stylesheet";l.href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Schibsted+Grotesk:wght@400;600;700&display=swap";document.head.append(l);
