@@ -18,7 +18,7 @@ const tabText=(p,id)=>p.q(`#tab-${id}`).textContent;
 const confirmYes=async p=>{const d=await p.until(()=>p.q('dialog.cf[open] [data-v="1"]'));p.click(d)};
 const submit=(p,el)=>el.dispatchEvent(new p.win.Event("submit",{bubbles:true,cancelable:true}));
 async function paidBooking(e){const c=e.srv.client();await c.post("/api/auth/login",{email:"cathy@t.test",password:PW});const a=e.srv.client();await a.post("/api/auth/login",{email:"aarav@t.test",password:PW});
- const b=(await c.post("/api/bookings",{creatorId:e.o.a.c.id,pk:0,date:"2026-11-02",slot:"10:00",type:"Birthday"})).json.booking;await a.post(`/api/bookings/${b.id}/accept`);
+ const b=(await c.post("/api/bookings",{creatorId:e.o.a.c.id,pk:0,date:"2026-11-02",slot:"10:00",type:"Birthday",area:"Madhapur",address:"Flat 402, Lotus Residency, Madhapur"})).json.booking;await a.post(`/api/bookings/${b.id}/accept`);
  const ord=(await c.post("/api/payments/order",{bookingId:b.id})).json;const ck=(await c.post("/api/payments/mock-checkout",{orderId:ord.orderId})).json;await c.post("/api/payments/verify",{bookingId:b.id,...ck});return{b,c,a}}
 
 test("customer panel: payments and receipt link, account name change, verify banner",async()=>{const e=await env();await paidBooking(e);
@@ -26,7 +26,7 @@ test("customer panel: payments and receipt link, account name change, verify ban
  const p=await e.open("customer.html",{sid:await e.as("cathy@t.test")});await p.until(()=>p.q("#pl table"));
  assert.ok(p.q("#tab-payments")&&p.q("#tab-account"));assert.ok(p.q("#pl").textContent.includes("₹2,500"));assert.match(p.q("#pl a").getAttribute("href"),/^receipt\.html\?b=/);
  assert.ok(p.q(".banner").textContent.includes("verify your email"));
- const f=p.q("#ac-name");f.elements.name.value="Cathy Z";submit(p,f);await p.until(()=>p.q(".toast")&&p.q(".toast").textContent.includes("Name saved"));assert.equal(e.w.store.d.users.find(u=>u.email==="cathy@t.test").name,"Cathy Z");
+ const f=p.q("#ac-name");f.elements.name.value="Cathy Z";submit(p,f);await p.until(()=>p.q(".toast")&&p.q(".toast").textContent.includes("Saved"));assert.equal(e.w.store.d.users.find(u=>u.email==="cathy@t.test").name,"Cathy Z");
  const pw=p.q("#ac-pw");pw.elements.current.value=PW;pw.elements.password.value="weak";submit(p,pw);await p.until(()=>p.q('[data-e="pw"]').textContent);await e.close()});
 test("customer panel: review form sends the comment",async()=>{const e=await env();const{c}=await paidBooking(e);Object.assign(e.w.store.d.bookings[0],{status:"Completed",delivery:{sent:true,url:"https://photos.example/g",at:new Date().toISOString(),due:"2026-11-10"}});
  const p=await e.open("customer.html",{sid:c.sid});await p.until(()=>p.q("[data-comment]"));p.q("[data-comment]").value="Loved it";p.click(p.q('[data-act="review"]'));
@@ -43,7 +43,7 @@ test("admin panel: failed refund shows with retry; payments, payouts, users and 
  p.click(p.q("[data-retry]"));await p.until(()=>e.w.store.d.payments[0].status==="refunded");await p.until(()=>!p.q("[data-retry]"));assert.equal(e.w.store.d.bookings[0].status,"Refunded");
  await p.until(()=>p.q("#au").textContent.includes("refund.retry"));assert.ok(p.q("#us").textContent.includes("aarav@t.test"));assert.ok(p.q("#po").textContent.includes("No payouts yet"));
  p.click(p.q('[data-user]'));await confirmYes(p);await p.until(()=>e.w.store.d.users.some(u=>u.disabled));await e.close()});
-test("admin panel: approve is disabled until the creator has an ID and a verified email",async()=>{const e=await env(),c=e.srv.client();await c.post("/api/auth/register",{agree:true,name:"Nia Rao",email:"nia@t.test",password:PW,role:"creator",area:"Madhapur",types:["Reel"]});
+test("admin panel: approve is disabled until the creator has an ID and a verified email",async()=>{const e=await env(),c=e.srv.client();await c.post("/api/auth/register",{agree:true,name:"Nia Rao",email:"nia@t.test",password:PW,role:"creator",phone:"9876543210",area:"Madhapur",types:["Reel"]});
  const p=await e.open("admin.html",{sid:await e.as("admin@t.test")});await p.until(()=>p.q("#cr table"));let row=p.qa("#cr tr").find(r=>r.textContent.includes("Nia"));assert.ok(row.textContent.includes("Waiting for ID"));assert.ok(!row.querySelector("[data-do=approve]"));
  const nu=e.w.store.d.users.find(u=>u.email==="nia@t.test"),cr=e.w.store.d.creators.find(x=>x.userId===nu.id);cr.idDoc={file:"x",ext:"jpg",at:"2026-01-01"};
  const p2=await e.open("admin.html",{sid:await e.as("admin@t.test")});await p2.until(()=>p2.q("#cr table"));row=p2.qa("#cr tr").find(r=>r.textContent.includes("Nia"));assert.ok(row.textContent.includes("Email not verified"));assert.ok(row.textContent.includes("View ID"));await e.close()});

@@ -1,4 +1,10 @@
-export const AREAS=["Madhapur","Banjara Hills","Gachibowli","Secunderabad"];
+export const COUNTRIES=["India"];
+export const LOCATIONS={"Telangana":["Madhapur","Banjara Hills","Gachibowli","Hitech City","Secunderabad","Uppal","LB Nagar"],"Andhra Pradesh":["Vizag","Vijayawada","Guntur","Kurnool"]};
+export const STATES=Object.keys(LOCATIONS);
+export const AREAS=STATES.flatMap(s=>LOCATIONS[s]);
+export const stateOf=a=>STATES.find(s=>LOCATIONS[s].includes(a))||"";
+export const normPhone=p=>{const d=String(p??"").replace(/[\s\-()]/g,"").replace(/^(\+91|91|0)(?=\d{10}$)/,"");return /^[6-9]\d{9}$/.test(d)?d:""};
+export const validPhone=p=>!!normPhone(p);
 export const TYPES=["Birthday","Family","Graduation","Reel","Product","Restaurant"];
 export const SLOTS=["10:00","16:00"];
 const COMMON=["password","12345678","123456789","qwertyuiop","iloveyou","letmein123","welcome123"];

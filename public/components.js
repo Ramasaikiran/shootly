@@ -1,5 +1,10 @@
-import {passwordScore,passwordIssues,validEmail,AREAS,TYPES} from "./policy.js";
+import {passwordScore,passwordIssues,validEmail,validPhone,AREAS,TYPES,STATES,LOCATIONS,stateOf} from "./policy.js";
 export const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+export const areaOpts=(state,sel="",any=false)=>(any?'<option value="">Any area</option>':"")+(state?LOCATIONS[state]||[]:AREAS).map(a=>`<option ${a===sel?"selected":""}>${esc(a)}</option>`).join("");
+export const stateAreaFields=({state="",area="",any=false,country=true}={})=>{const st=any?(state||stateOf(area)):(state||stateOf(area)||STATES[0]);
+ return `${country?'<label>Country<select name="country" disabled><option>India</option></select></label>':""}<label>State<select name="state" data-any="${any}">${any?'<option value="">Any state</option>':""}${STATES.map(s=>`<option ${s===st?"selected":""}>${esc(s)}</option>`).join("")}</select></label><label>Area<select name="area">${areaOpts(st,area,any)}</select></label>`};
+export function wireStateArea(root){const st=root.querySelector('select[name="state"]'),ar=root.querySelector('select[name="area"]');if(!st||!ar)return;st.addEventListener("change",()=>{ar.innerHTML=areaOpts(st.value,"",st.dataset.any==="true")})}
+export const mapUrl=l=>"https://www.google.com/maps/search/?api=1&query="+(l.lat!=null&&l.lng!=null?l.lat+","+l.lng:encodeURIComponent([l.address,l.area,l.state,"India"].filter(Boolean).join(", ")));
 export const inr=n=>"₹"+Number(n).toLocaleString("en-IN");
 export const STAGES=["Requested","Accepted","Confirmed","In progress","Completed"];
 export const tagFor=s=>["Confirmed","In progress","Completed"].includes(s)?"ok":["Declined","Cancelled","Refunded","Disputed"].includes(s)?"no":"wait";
@@ -36,7 +41,7 @@ export function bookingCard(b,role){const dead=["Declined","Cancelled","Refunded
  return `<article class="card bc${attn?" attn":""}" data-id="${esc(b.id)}"><div class="dt" aria-hidden="true"><small>${esc(p.m)}</small><b>${esc(p.d)}</b></div><div class="bcb">
 <div class="row"><h3>${esc(b.pkg.n)} ${who}</h3><span class="tag ${tagFor(b.status)}">${esc(b.status)}</span></div>
 <ul class="meta"><li>${esc(b.date)} · ${esc(b.slot)}</li><li>${esc(b.type)}</li><li>${inr(b.price)} all-in</li>${role!=="customer"?`<li>${role==="creator"?"Your":"Creator"} payout ${inr(b.payout)}</li>`:""}${b.payment?`<li>Payment ${esc(b.payment)}</li>`:""}${b.review?`<li>Rated ${esc(b.review.rating)}/5</li>`:""}</ul>
-${b.reason?`<p class="mute">Issue: ${esc(b.reason)}</p>`:""}${nx?`<p class="next">${esc(nx)}</p>`:""}${dead?"":track(b.status)}<div class="acts">${bookingActions(b,role)}</div>
+${b.loc?`<p class="where"><b>Shoot location:</b> ${esc(b.loc.address)}${b.loc.landmark?`, near ${esc(b.loc.landmark)}`:""}, ${esc(b.loc.area)}, ${esc(b.loc.state)} · <a href="${esc(mapUrl(b.loc))}" target="_blank" rel="noopener noreferrer">Open in Maps</a></p>`:""}${b.customerPhone?`<p class="where">Customer phone: <a href="tel:+91${esc(b.customerPhone)}">+91 ${esc(b.customerPhone)}</a></p>`:""}${b.reason?`<p class="mute">Issue: ${esc(b.reason)}</p>`:""}${nx?`<p class="next">${esc(nx)}</p>`:""}${dead?"":track(b.status)}<div class="acts">${bookingActions(b,role)}</div>
 <details><summary class="mute">Booking history</summary><p class="mute">${b.log.map(esc).join(" → ")}</p></details></div></article>`}
 const initials=n=>String(n||"?").trim().split(/\s+/).slice(0,2).map(x=>x[0]||"").join("").toUpperCase();
 export function creatorCard(c,hue=0,dated=false){const H=["#2442E8","#E8426B","#16A37F","#B97800","#7B4DFF","#D2541A"];
@@ -52,23 +57,24 @@ export function mountAuth(root,{api,onDone,mode="login"}){const doc=root.ownerDo
 ${reg?`<fieldset class="who"><legend>I’m here to</legend><label class="dial"><input type="radio" name="role" value="customer" checked><span><b>Book a shoot</b><small>Find and pay a creator</small></span></label><label class="dial"><input type="radio" name="role" value="creator"><span><b>Take bookings</b><small>List your work</small></span></label></fieldset>
 <label>Your name<input name="name" autocomplete="name" maxlength="60" required></label><p class="fe" data-for="name" role="alert"></p>`:""}
 <label>Email<input name="email" type="email" autocomplete="email" maxlength="254" required></label><p class="fe" data-for="email" role="alert"></p>
+${reg?`<label>Mobile number<span class="phone"><span class="cc2" aria-hidden="true">+91</span><input name="phone" type="tel" inputmode="numeric" autocomplete="tel-national" maxlength="14" placeholder="98765 43210" required></span></label><p class="fe" data-for="phone" role="alert"></p>`:""}
 <label>Password<span class="pw"><input name="password" type="password" autocomplete="${reg?"new-password":"current-password"}" maxlength="128" required><button type="button" class="btn alt sm" data-show aria-pressed="false">Show</button></span></label><p class="fe" data-for="password" role="alert"></p>
 ${reg?"":`<p class="fp"><a href="reset.html">Forgot password?</a></p>`}
-${reg?`<div id="meter">${exposureMeter(0)}</div><ul class="hints" id="hints"></ul><div id="cx" hidden><label>Main area<select name="area">${AREAS.map(a=>`<option>${esc(a)}</option>`).join("")}</select></label><fieldset class="types"><legend>Shoots you take</legend>${TYPES.map(t=>`<label class="chk"><input type="checkbox" name="types" value="${esc(t)}"> ${esc(t)}</label>`).join("")}</fieldset><p class="fe" data-for="types" role="alert"></p></div>`:""}
+${reg?`<div id="meter">${exposureMeter(0)}</div><ul class="hints" id="hints"></ul><div id="cx" hidden>${stateAreaFields()}<fieldset class="types"><legend>Shoots you take</legend>${TYPES.map(t=>`<label class="chk"><input type="checkbox" name="types" value="${esc(t)}"> ${esc(t)}</label>`).join("")}</fieldset><p class="fe" data-for="types" role="alert"></p></div>`:""}
 ${reg?`<label class="chk agree"><input type="checkbox" name="agree"> <span>I agree to the <a href="terms.html" target="_blank" rel="noopener">Terms</a>, <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a> and <a href="refunds.html" target="_blank" rel="noopener">Refund Policy</a>.</span></label><p class="fe" data-for="agree" role="alert"></p>`:""}<p class="fe" id="err" role="alert" aria-live="polite"></p><button class="btn lg" type="submit" id="go">${reg?"Create account":"Sign in"}</button></form></div>`;wire()};
  function wire(){const f=root.querySelector("#af"),q=s=>root.querySelector(s),setErr=(k,t)=>{const e=k?q(`[data-for="${k}"]`):q("#err");if(e)e.textContent=t||""};
   q("#tab-login").onclick=()=>{m="login";draw()};q("#tab-register").onclick=()=>{m="register";draw()};
   q("[data-show]").onclick=e=>{const i=f.elements.password,on=i.type==="password";i.type=on?"text":"password";e.target.textContent=on?"Hide":"Show";e.target.setAttribute("aria-pressed",String(on))};
-  if(m==="register"){const upd=()=>{const pw=f.elements.password.value;q("#meter").innerHTML=exposureMeter(passwordScore(pw));q("#hints").innerHTML=pw?passwordIssues(pw,f.elements.email.value).map(x=>`<li>${esc(x)}</li>`).join(""):""};
+  if(m==="register"){wireStateArea(q("#cx"));const upd=()=>{const pw=f.elements.password.value;q("#meter").innerHTML=exposureMeter(passwordScore(pw));q("#hints").innerHTML=pw?passwordIssues(pw,f.elements.email.value).map(x=>`<li>${esc(x)}</li>`).join(""):""};
    f.elements.password.addEventListener("input",upd);f.elements.email.addEventListener("input",upd);
    f.addEventListener("change",e=>{if(e.target.name==="role")q("#cx").hidden=e.target.value!=="creator"})}
   f.addEventListener("submit",async e=>{e.preventDefault();root.querySelectorAll(".fe").forEach(x=>x.textContent="");const d=Object.fromEntries(new FormData(f));const errs={};
-   if(m==="register"){if(String(d.name||"").trim().length<2)errs.name="Enter your name."}
+   if(m==="register"){if(String(d.name||"").trim().length<2)errs.name="Enter your name.";if(!validPhone(d.phone))errs.phone="Enter a valid 10-digit mobile number."}
    if(!validEmail(d.email))errs.email="Enter a valid email.";
    if(m==="register"){const i=passwordIssues(d.password,d.email);if(i.length)errs.password=i[0];if(!f.elements.agree.checked)errs.agree="Please accept the Terms and Privacy Policy.";if(d.role==="creator"&&!f.querySelectorAll('[name="types"]:checked').length)errs.types="Pick at least one shoot type."}
    else if(!d.password)errs.password="Enter your password.";
    const first=Object.keys(errs)[0];if(first){for(const k in errs)setErr(k,errs[k]);f.elements[first]?.focus?.();return}
-   const body={email:d.email,password:d.password};if(m==="register"){Object.assign(body,{name:d.name,role:d.role,agree:true});if(d.role==="creator"){body.area=d.area;body.types=[...f.querySelectorAll('[name="types"]:checked')].map(x=>x.value)}}
+   const body={email:d.email,password:d.password};if(m==="register"){Object.assign(body,{name:d.name,role:d.role,phone:d.phone,agree:true});if(d.role==="creator"){body.state=d.state;body.area=d.area;body.types=[...f.querySelectorAll('[name="types"]:checked')].map(x=>x.value)}}
    const go=q("#go"),label=go.textContent;go.disabled=true;go.textContent=m==="register"?"Creating…":"Signing in…";
    try{const r=await api[m](body);q("#vf").classList.add("open");onDone(r.user)}catch(er){go.disabled=false;go.textContent=label;setErr(er.field&&q(`[data-for="${er.field}"]`)?er.field:null,er.message||"Something went wrong. Try again.")}})}
  draw()}

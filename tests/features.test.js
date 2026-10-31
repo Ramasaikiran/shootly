@@ -14,7 +14,7 @@ const throwsS = (f, status) => assert.throws(f, e => e instanceof HttpError && e
 const JPG = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(40, 1)]).toString("base64");
 const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(40)]).toString("base64");
 const PDF = Buffer.concat([Buffer.from("%PDF-1.7\n"), Buffer.alloc(40)]).toString("base64");
-const book = (w, o, cust = o.cust, c = o.a.c, date = "2026-11-02", slot = "10:00") => w.service.makeBooking(cust, { creatorId: c.id, pk: 0, date, slot, type: "Birthday" });
+const book = (w, o, cust = o.cust, c = o.a.c, date = "2026-11-02", slot = "10:00") => w.service.makeBooking(cust, { creatorId: c.id, pk: 0, date, slot, type: "Birthday",area:"Madhapur",address:"Flat 402, Lotus Residency, Madhapur" });
 async function paid(w, o, b = book(w, o)) {
   const s = w.service; await s.act(o.a.u, b.id, "accept");
   const ord = await s.createOrder(o.cust, b.id), k = w.gateway.mockCheckout(ord.orderId);
@@ -83,25 +83,25 @@ function fresh() {
 }
 const tokenOf = (mailer, i = -1) => mailer.outbox.at(i).text.match(/#t=([\w-]+)/)[1];
 test("email verification: link verifies, unverified users cannot book", async () => {
-  const f = fresh(), s = f.service; const u = s.register({ name: "Zed", email: "zed@t.test", password: PW, role: "customer" });
+  const f = fresh(), s = f.service; const u = s.register({ name: "Zed", email: "zed@t.test", password: PW, role: "customer",phone:"9876543210" });
   await new Promise(r => setTimeout(r, 5)); assert.equal(f.mailer.outbox.length, 1); assert.equal(u.emailVerified, false);
   assert.match(f.mailer.outbox[0].text, /https:\/\/x\.test\/verify\.html#t=/);
-  const cu = s.register({ name: "Cee", email: "c@t.test", password: PW, role: "creator", area: "Madhapur", types: ["Birthday"] }); const c = f.store.d.creators[0]; c.ver = "verified"; c.pk = [{ n: "Mini", h: 1, d: "25 photos", days: 3, p: 2500 }];
-  throwsS(() => s.makeBooking(u, { creatorId: c.id, pk: 0, date: "2026-11-02", slot: "10:00", type: "Birthday" }), 403);
+  const cu = s.register({ name: "Cee", email: "c@t.test", password: PW, role: "creator",phone:"9876543210", area: "Madhapur", types: ["Birthday"] }); const c = f.store.d.creators[0]; c.ver = "verified"; c.pk = [{ n: "Mini", h: 1, d: "25 photos", days: 3, p: 2500 }];
+  throwsS(() => s.makeBooking(u, { creatorId: c.id, pk: 0, date: "2026-11-02", slot: "10:00", type: "Birthday",area:"Madhapur",address:"Flat 402, Lotus Residency, Madhapur" }), 403);
   assert.throws(() => s.verifyEmail("bad-token"), e => e.status === 400);
   const v = s.verifyEmail(tokenOf(f.mailer, 0)); assert.equal(v.emailVerified, true);
   assert.throws(() => s.verifyEmail(tokenOf(f.mailer, 0)), e => e.status === 400, "single use");
-  assert.ok(s.makeBooking({ ...u, emailVerified: true }, { creatorId: c.id, pk: 0, date: "2026-11-02", slot: "10:00", type: "Birthday" }));
+  assert.ok(s.makeBooking({ ...u, emailVerified: true }, { creatorId: c.id, pk: 0, date: "2026-11-02", slot: "10:00", type: "Birthday",area:"Madhapur",address:"Flat 402, Lotus Residency, Madhapur" }));
   assert.equal(cu.emailVerified, false);
 });
 test("email verification: token expires after 48 hours; resend works once verified is false", async () => {
-  const f = fresh(), s = f.service; const u = s.register({ name: "Zed", email: "zed@t.test", password: PW, role: "customer" }); await new Promise(r => setTimeout(r, 5));
+  const f = fresh(), s = f.service; const u = s.register({ name: "Zed", email: "zed@t.test", password: PW, role: "customer",phone:"9876543210" }); await new Promise(r => setTimeout(r, 5));
   f.advance(49 * 36e5); assert.throws(() => s.verifyEmail(tokenOf(f.mailer, 0)), e => e.status === 400);
   s.resendVerification(u); await new Promise(r => setTimeout(r, 5)); assert.equal(f.mailer.outbox.length, 2); s.verifyEmail(tokenOf(f.mailer));
   throwsS(() => s.resendVerification(u), 409);
 });
 test("password reset: link sets a new password, signs out everywhere, is single-use and expires; unknown email sends nothing", async () => {
-  const f = fresh(), s = f.service; s.register({ name: "Zed", email: "zed@t.test", password: PW, role: "customer" }); await new Promise(r => setTimeout(r, 5)); f.mailer.outbox.length = 0;
+  const f = fresh(), s = f.service; s.register({ name: "Zed", email: "zed@t.test", password: PW, role: "customer",phone:"9876543210" }); await new Promise(r => setTimeout(r, 5)); f.mailer.outbox.length = 0;
   await s.forgot("nobody@t.test"); assert.equal(f.mailer.outbox.length, 0);
   const sess = s.login({ email: "zed@t.test", password: PW }); await s.forgot("ZED@t.test"); const t = tokenOf(f.mailer);
   assert.throws(() => s.resetPassword({ token: t, password: "short" }), e => e.field === "password");
@@ -148,14 +148,14 @@ test("disk uploads: random names, private files not served as public, path trick
 });
 test("creator ID: upload, admin can view, approval needs ID and verified email", () => {
   const f = fresh(), s = f.service; const adm = s.createAdmin("a@t.test", PW);
-  const u = s.register({ name: "Dev", email: "dev@t.test", password: PW, role: "creator", area: "Madhapur", types: ["Birthday"] }), c = f.store.d.creators[0];
+  const u = s.register({ name: "Dev", email: "dev@t.test", password: PW, role: "creator",phone:"9876543210", area: "Madhapur", types: ["Birthday"] }), c = f.store.d.creators[0];
   throwsS(() => s.setCreatorStatus(adm, c.id, "verified"), 409); throwsS(() => s.setIdDoc(u, { data: JPG.slice(0, 4) }), 400);
   throwsS(() => s.setIdDoc(u, { data: Buffer.from("<html>").toString("base64") }), 400); s.setIdDoc(u, { data: PDF }); assert.equal(s.myCreator(u).hasId, true);
   throwsS(() => s.setCreatorStatus(adm, c.id, "verified"), 409, "email not verified yet"); f.store.d.users.find(x => x.id === u.id).emailVerified = true;
   throwsS(() => s.readIdDoc(u, c.id), 403); const file = s.readIdDoc(adm, c.id); assert.equal(file.mime, "application/pdf");
   s.setCreatorStatus(adm, c.id, "verified"); assert.equal(c.ver, "verified"); s.setIdDoc(u, { data: PNG }); assert.equal(s.readIdDoc(adm, c.id).mime, "image/png");
   assert.equal(s.uploads.count(), 1, "old ID file removed"); assert.ok(s.listAudit(adm).some(a => a.action === "creator.id_viewed"));
-  throwsS(() => s.setIdDoc({ id: "x", role: "customer" }, { data: PDF }), 403);
+  throwsS(() => s.setIdDoc({ id: "x", role: "customer",phone:"9876543210" }, { data: PDF }), 403);
 });
 test("portfolio: add, limit of 12, remove deletes the file; public view lists it", () => {
   const { w, o, s } = world(); for (let i = 0; i < 12; i++) s.addPortfolio(o.a.u, { data: JPG, caption: "<b>x</b> " + i });
@@ -283,7 +283,7 @@ test("http: account routes, uploads served publicly, ID only to admin, receipt a
   r = await aar.post("/api/creator/payout", { holder: "Aarav", upi: "aarav@okhdfc" }); assert.equal(r.json.creator.payout.mask, "aa***@okhdfc"); assert.ok(!JSON.stringify(r.json).includes("cipher"));
   r = await cath.post("/api/me/profile", { name: "Cathy Z" }); assert.equal(r.json.user.name, "Cathy Z");
   assert.equal((await cath.post("/api/me/password", { current: "nope-nope-1", password: "Another-pass-88" })).status, 400); assert.equal((await cath.post("/api/me/password", { current: PW, password: "Another-pass-88" })).status, 200); assert.equal((await cath.get("/api/me")).status, 200);
-  const nb = (await carl.post("/api/bookings", { creatorId: o.b.c.id, pk: 0, date: "2026-11-02", slot: "10:00", type: "Birthday" })).json.booking; assert.ok(nb);
+  const nb = (await carl.post("/api/bookings", { creatorId: o.b.c.id, pk: 0, date: "2026-11-02", slot: "10:00", type: "Birthday",area:"Madhapur",address:"Flat 402, Lotus Residency, Madhapur" })).json.booking; assert.ok(nb);
   assert.equal((await carl.get("/api/payments")).json.payments.length, 0); assert.equal((await carl.get(`/api/bookings/${nb.id}/receipt`)).status, 404);
   for (const p of ["/api/admin/payments", "/api/admin/users", "/api/admin/audit", "/api/admin/payouts"]) { assert.equal((await carl.get(p)).status, 403, p); assert.equal((await adm.get(p)).status, 200, p); }
   assert.equal((await carl.post("/api/admin/users/" + o.cust.id + "/disable")).status, 403); assert.equal((await adm.post("/api/admin/payouts/B1/paid", { ref: "x" })).status, 404);

@@ -1,5 +1,5 @@
 import test from "node:test";import assert from "node:assert/strict";
-import {passwordIssues,passwordScore,validEmail} from "../public/policy.js";
+import {passwordIssues,passwordScore,validEmail,AREAS,stateOf,normPhone} from "../public/policy.js";
 import {hashPassword,verifyPassword,newToken,hmac,createLimiter,safeEq} from "../server/security.js";
 import {verifyCheckoutSignature,verifyWebhookSignature,RazorpayGateway,MockGateway,gatewayFromEnv} from "../server/payments.js";
 import {HttpError} from "../server/service.js";
@@ -25,20 +25,20 @@ test("payments: Razorpay gateway sends auth and paise amount",async()=>{let seen
 test("payments: production refuses mock gateway",()=>{assert.throws(()=>gatewayFromEnv({NODE_ENV:"production"}));assert.ok(gatewayFromEnv({}).mock)});
 
 test("accounts: registration rules",()=>{const w=makeWorld(),s=w.service;
- throwsS(()=>s.register({name:"A",email:"x@y.co",password:PW,role:"customer"}),400);throwsS(()=>s.register({name:"Alex",email:"bad",password:PW,role:"customer"}),400);
- throwsS(()=>s.register({name:"Alex",email:"a@y.co",password:"weak",role:"customer"}),400);throwsS(()=>s.register({name:"Alex",email:"a@y.co",password:PW,role:"admin"}),400);
- throwsS(()=>s.register({name:"Alex",email:"a@y.co",password:PW,role:"creator",area:"Moon",types:["Family"]}),400);throwsS(()=>s.register({name:"Alex",email:"a@y.co",password:PW,role:"creator",area:"Madhapur",types:["Hax"]}),400);
- const u=s.register({name:"Alex <b>",email:"A@Y.co",password:PW,role:"customer"});assert.equal(u.email,"a@y.co");assert.ok(!u.name.includes("<"));assert.ok(!("passHash"in u));
- throwsS(()=>s.register({name:"Alex",email:"a@y.co",password:PW,role:"customer"}),409)});
+ throwsS(()=>s.register({name:"A",email:"x@y.co",password:PW,role:"customer",phone:"9876543210"}),400);throwsS(()=>s.register({name:"Alex",email:"bad",password:PW,role:"customer",phone:"9876543210"}),400);
+ throwsS(()=>s.register({name:"Alex",email:"a@y.co",password:"weak",role:"customer",phone:"9876543210"}),400);throwsS(()=>s.register({name:"Alex",email:"a@y.co",password:PW,role:"admin"}),400);
+ throwsS(()=>s.register({name:"Alex",email:"a@y.co",password:PW,role:"creator",phone:"9876543210",area:"Moon",types:["Family"]}),400);throwsS(()=>s.register({name:"Alex",email:"a@y.co",password:PW,role:"creator",phone:"9876543210",area:"Madhapur",types:["Hax"]}),400);
+ const u=s.register({name:"Alex <b>",email:"A@Y.co",password:PW,role:"customer",phone:"9876543210"});assert.equal(u.email,"a@y.co");assert.ok(!u.name.includes("<"));assert.ok(!("passHash"in u));
+ throwsS(()=>s.register({name:"Alex",email:"a@y.co",password:PW,role:"customer",phone:"9876543210"}),409)});
 test("accounts: login, session, logout, expiry",()=>{const w=makeWorld(),s=w.service;seedBasics(w);
  throwsS(()=>s.login({email:"cathy@t.test",password:"nope"}),401);throwsS(()=>s.login({email:"ghost@t.test",password:PW}),401);
  const{token,user}=s.login({email:"CATHY@t.test",password:PW});assert.equal(s.authenticate(token).id,user.id);s.logout(token);assert.equal(s.authenticate(token),null);
  const t2=s.login({email:"cathy@t.test",password:PW}).token;w.clock.advance(8*864e5);assert.equal(s.authenticate(t2),null)});
 
-const book=(w,o,cust,over={})=>w.service.makeBooking(cust,{creatorId:o.a.c.id,pk:0,date:"2026-11-02",slot:"10:00",type:"Birthday",...over});
+const book=(w,o,cust,over={})=>w.service.makeBooking(cust,{creatorId:o.a.c.id,pk:0,date:"2026-11-02",slot:"10:00",type:"Birthday",area:"Madhapur",address:"Flat 402, Lotus Residency, Madhapur",...over});
 test("booking: validation",()=>{const w=makeWorld(),o=seedBasics(w),s=w.service;
  for(const over of[{date:"2026-10-24"},{date:"2026-02-30"},{date:"x"},{date:"2028-01-01"},{slot:"11:00"},{type:"Reel"},{pk:9},{pk:"0"},{creatorId:"nope"}])throwsS(()=>book(w,o,o.cust,over),over.creatorId?404:400);
- throwsS(()=>s.makeBooking({id:"x",role:"creator"},{}),403);const b=book(w,o,o.cust);assert.equal(b.status,"Requested");assert.equal(b.price,2500);throwsS(()=>book(w,o,o.cust),409)});
+ throwsS(()=>s.makeBooking({id:"x",role:"creator",phone:"9876543210"},{}),403);const b=book(w,o,o.cust);assert.equal(b.status,"Requested");assert.equal(b.price,2500);throwsS(()=>book(w,o,o.cust),409)});
 test("booking: today in India time (IST) counts as today",()=>{const w=makeWorld({date:"2026-10-25T20:00:00Z"}),o=seedBasics(w);assert.equal(w.service._today(),"2026-10-26");throwsS(()=>book(w,o,o.cust,{date:"2026-10-25"}),400);book(w,o,o.cust,{date:"2026-10-26"})});
 test("booking: price is a snapshot",()=>{const w=makeWorld(),o=seedBasics(w),b=book(w,o,o.cust);o.a.c.pk[0].p=99999;assert.equal(w.service.listBookings(o.cust)[0].price,2500);assert.equal(b.pkg.p,2500)});
 async function paid(w,o,cust,b){const s=w.service,ord=await s.createOrder(cust,b.id),c=w.gateway.mockCheckout(ord.orderId);return s.verifyPayment(cust,{bookingId:b.id,orderId:c.orderId,paymentId:c.paymentId,signature:c.signature})}
@@ -73,9 +73,16 @@ test("disputes: window, reason, admin resolve",async()=>{const w=makeWorld({demo
  const b2=book(w,o,o.cust,{date:"2026-11-03"});await s.act(o.a.u,b2.id,"accept");await paid(w,o,o.cust,b2);await s.act(o.a.u,b2.id,"start");await s.act(o.a.u,b2.id,"complete");await s.act(o.a.u,b2.id,"deliver",{url:"https://f.test/y"});w.clock.advance(8*864e5);await rejects(s.act(o.cust,b2.id,"issue",{reason:"too late now"}),409)});
 test("listing: filters, free slots, unverified hidden",()=>{const w=makeWorld(),o=seedBasics(w),s=w.service;assert.equal(s.listCreators({}).length,2);assert.equal(s.listCreators({area:"Madhapur"}).length,1);assert.equal(s.listCreators({budget:"2000"}).length,0);
  o.b.c.ver="suspended";assert.equal(s.listCreators({}).length,1);const b=book(w,o,o.cust);return s.act(o.a.u,b.id,"accept").then(()=>paid(w,o,o.cust,b)).then(()=>{assert.deepEqual(s.listCreators({date:"2026-11-02"})[0].free,["16:00"])})});
-test("listing: creator with no packages is hidden; package validation",()=>{const w=makeWorld(),s=w.service;const u=s.register({name:"Newbie",email:"n@t.test",password:PW,role:"creator",area:"Madhapur",types:["Family"]});const c=w.store.d.creators[0];c.ver="verified";assert.equal(s.listCreators({}).length,0);
- throwsS(()=>s.addPackage(u,{n:"X",h:1,d:"desc here",days:2,p:2000}),400);throwsS(()=>s.addPackage(u,{n:"Fine",h:1,d:"desc here",days:2,p:5}),400);throwsS(()=>s.addPackage({id:"u9",role:"customer"},{}),403);
+test("listing: creator with no packages is hidden; package validation",()=>{const w=makeWorld(),s=w.service;const u=s.register({name:"Newbie",email:"n@t.test",password:PW,role:"creator",phone:"9876543210",area:"Madhapur",types:["Family"]});const c=w.store.d.creators[0];c.ver="verified";assert.equal(s.listCreators({}).length,0);
+ throwsS(()=>s.addPackage(u,{n:"X",h:1,d:"desc here",days:2,p:2000}),400);throwsS(()=>s.addPackage(u,{n:"Fine",h:1,d:"desc here",days:2,p:5}),400);throwsS(()=>s.addPackage({id:"u9",role:"customer",phone:"9876543210"},{}),403);
  s.addPackage(u,{n:"Fine",h:1,d:"desc here",days:2,p:2000});assert.equal(s.listCreators({}).length,1)});
 test("authorization: admin-only actions",()=>{const w=makeWorld(),o=seedBasics(w),s=w.service;throwsS(()=>s.setCreatorStatus(o.cust,o.a.c.id,"suspended"),403);throwsS(()=>s.stats(o.a.u),403);s.setCreatorStatus(o.admin,o.a.c.id,"suspended");assert.equal(o.a.c.ver,"suspended")});
 test("late delivery: customer can report missing files only after the due date",async()=>{const w=makeWorld({demo:true}),o=seedBasics(w),s=w.service,b=book(w,o,o.cust);await s.act(o.a.u,b.id,"accept");await paid(w,o,o.cust,b);await s.act(o.a.u,b.id,"start");await s.act(o.a.u,b.id,"complete");
  await rejects(s.act(o.cust,b.id,"issue",{reason:"Files are late"}),409);w.clock.advance(4*864e5);const r=await s.act(o.cust,b.id,"issue",{reason:"Files are late"});assert.equal(r.status,"Disputed");const r2=await s.act(o.admin,b.id,"resolve",{decision:"refund"});assert.equal(r2.status,"Refunded");assert.equal(w.gateway.refunds.length,1)});
+
+test("locations: new cities, phone and shoot address rules",()=>{const w=makeWorld(),s=w.service,o=w.o||undefined;
+ for(const a of["Vizag","Vijayawada","Guntur","Kurnool","Hitech City","Uppal","LB Nagar"])assert.ok(AREAS.includes(a),a);
+ assert.equal(stateOf("Vizag"),"Andhra Pradesh");assert.equal(stateOf("Uppal"),"Telangana");
+ assert.equal(normPhone("+91 98765 43210"),"9876543210");assert.equal(normPhone("12345"),"");
+ throwsS(()=>s.register({name:"Nophone",email:"np@y.co",password:PW,role:"customer"}),400);
+ throwsS(()=>s.register({name:"Wrong",email:"ws@y.co",password:PW,role:"creator",phone:"9876543210",state:"Telangana",area:"Vizag",types:["Family"]}),400)});

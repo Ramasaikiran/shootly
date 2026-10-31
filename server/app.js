@@ -26,7 +26,7 @@ const routes=[
 ["POST","/api/auth/reset",c=>{gate(lim.loginIp,c.ip);return service.resetPassword({token:String(c.body.token||""),password:c.body.password})}],
 ["POST","/api/auth/verify",c=>{gate(lim.loginIp,c.ip);return{user:service.verifyEmail(String(c.body.token||""))}}],
 ["POST","/api/auth/resend-verification",c=>{gate(lim.mailKey,U(c).id);return service.resendVerification(c.user)}],
-["POST","/api/me/profile",c=>{gate(lim.write,U(c).id);service.updateName(c.user,c.body.name);return meOut(c)}],
+["POST","/api/me/profile",c=>{gate(lim.write,U(c).id);service.updateName(c.user,c.body.name,c.body.phone);return meOut(c)}],
 ["POST","/api/me/password",c=>{gate(lim.pw,U(c).id);return service.changePassword(c.user,{current:c.body.current,password:c.body.password},c.token)}],
 ["GET","/api/me",c=>({user:U(c),creator:c.user.role==="creator"?service.myCreator(c.user):null,config:{mock:!!gateway.mock,keyId:gateway.keyId}})],
 ["GET",/^\/api\/creators\/(\w+)$/,c=>({creator:service.getCreator(c.m[1])})],

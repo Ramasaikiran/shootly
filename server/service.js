@@ -1,4 +1,4 @@
-import {AREAS,TYPES,SLOTS,passwordIssues,validEmail} from "../public/policy.js";
+import {AREAS,TYPES,SLOTS,stateOf,normPhone,passwordIssues,validEmail} from "../public/policy.js";
 import {hashPassword,verifyPassword,DUMMY_HASH,newToken,sha,encrypt,decrypt} from "./security.js";
 import {memoryUploads,decodeUpload} from "./uploads.js";
 import {scryptSync} from "node:crypto";
@@ -20,24 +20,25 @@ const blockedOn=(cid,date)=>!!cr(cid)?.blocked?.includes(date);
 const slotTaken=(cid,date,slot)=>blockedOn(cid,date)||D.bookings.some(o=>o.creatorId===cid&&o.date===date&&o.slot===slot&&HELD.includes(o.status));
 const setSt=(b,s,n)=>{b.status=s;b.log.push(s+(n?` (${n})`:""))};
 const payOf=id=>D.payments.find(p=>p.bookingId===id&&["created","paid","refunded","refund_failed"].includes(p.status));
-const uview=u=>({id:u.id,name:u.name,email:u.email,role:u.role,emailVerified:!!u.emailVerified});
+const uview=u=>({id:u.id,name:u.name,email:u.email,phone:u.phone||"",role:u.role,emailVerified:!!u.emailVerified});
 const ensureIds=c=>{for(const p of c.pk)if(!p.id)p.id=store.id("k")};
 function audit(user,action,target="",detail=""){D.audit.push({id:store.id("a"),at:now().toISOString(),actor:user?.id||"system",actorName:user?.name||"system",action,target:String(target),detail:String(detail).slice(0,300)});if(D.audit.length>5000)D.audit.splice(0,D.audit.length-5000)}
 const upErr=fn=>{try{return fn()}catch(e){if(e instanceof HttpError)throw e;throw E(400,e.message,"file")}};
 const needCreator=user=>{const c=creatorOf(user);if(!c)throw E(403,"Creators only.");return c};
 const needAdmin=u=>{if(u.role!=="admin")throw E(403,"Admins only.")};
 // ---- accounts
-function register({name,email,password,role,area,types}){
+function register({name,email,password,role,area,types,state,phone}){
  name=clean(name,60);email=String(email||"").trim().toLowerCase();
  if(name.length<2)throw E(400,"Enter your name.","name");
  if(!validEmail(email))throw E(400,"Enter a valid email.","email");
  if(!["customer","creator"].includes(role))throw E(400,"Choose customer or creator.","role");
+ phone=normPhone(phone);if(!phone)throw E(400,"Enter a valid 10-digit Indian mobile number.","phone");
  const issues=passwordIssues(password,email);if(issues.length)throw E(400,issues[0],"password");
- if(role==="creator"){if(!AREAS.includes(area))throw E(400,"Pick your main area.","area");
+ if(role==="creator"){if(!AREAS.includes(area))throw E(400,"Pick your main area.","area");if(state&&stateOf(area)!==state)throw E(400,"That area is not in the selected state.","area");
   if(!Array.isArray(types)||!types.length||!types.every(t=>TYPES.includes(t)))throw E(400,"Pick at least one shoot type.","types")}
  if(D.users.some(u=>u.email===email))throw E(409,"An account with this email already exists.","email");
- const u={id:store.id("u"),name,email,role,passHash:hashPassword(password),emailVerified:false,createdAt:now().toISOString()};D.users.push(u);sendVerification(u).catch(e=>console.error("verification email failed:",e.message));
- if(role==="creator")D.creators.push({id:store.id("c"),userId:u.id,name,area,types:[...new Set(types)],exp:"New on the platform",ver:"pending",pk:[]});
+ const u={id:store.id("u"),name,email,role,phone,passHash:hashPassword(password),emailVerified:false,createdAt:now().toISOString()};D.users.push(u);sendVerification(u).catch(e=>console.error("verification email failed:",e.message));
+ if(role==="creator")D.creators.push({id:store.id("c"),userId:u.id,name,country:"India",state:stateOf(area),area,types:[...new Set(types)],exp:"New on the platform",ver:"pending",pk:[]});
  return uview(u)}
 function recordConsent(id){const u=D.users.find(x=>x.id===id);if(u)u.consent={at:now().toISOString(),docs:["terms","privacy","refunds"],v:"2026-10-26"}}
 function createAdmin(email,password){const u={id:store.id("u"),name:"Admin",email:email.toLowerCase(),role:"admin",passHash:hashPassword(password),emailVerified:true,createdAt:now().toISOString()};D.users.push(u);return u}
@@ -49,10 +50,11 @@ function authenticate(token){if(!token)return null;const k=sha(token),s=D.sessio
  const u=D.users.find(x=>x.id===s.userId);return u&&!u.disabled?uview(u):null}
 const logout=token=>{if(token)delete D.sessions[sha(token)]};
 // ---- creators
-function listCreators({area,type,date,budget}={},){let l=D.creators.filter(c=>c.ver==="verified"&&c.pk.length);
+function listCreators({area,type,date,budget,state}={},){let l=D.creators.filter(c=>c.ver==="verified"&&c.pk.length);
+ if(state&&!area)l=l.filter(c=>stateOf(c.area)===state);
  if(area&&AREAS.includes(area))l=l.filter(c=>c.area===area);if(type&&TYPES.includes(type))l=l.filter(c=>c.types.includes(type));
  if(budget&&+budget>0)l=l.filter(c=>c.pk.some(p=>p.p<=+budget));
- return l.map(c=>{ensureIds(c);return c}).map(c=>({id:c.id,name:c.name,area:c.area,types:c.types,exp:c.exp,bio:c.bio||"",rating:ratingOf(c),cover:portView(c)[0]?.url||null,pk:c.pk,free:date&&validDate(date)?SLOTS.filter(s=>!slotTaken(c.id,date,s)):SLOTS})).filter(c=>c.free.length)}
+ return l.map(c=>{ensureIds(c);return c}).map(c=>({id:c.id,name:c.name,area:c.area,state:stateOf(c.area),types:c.types,exp:c.exp,bio:c.bio||"",rating:ratingOf(c),cover:portView(c)[0]?.url||null,pk:c.pk,free:date&&validDate(date)?SLOTS.filter(s=>!slotTaken(c.id,date,s)):SLOTS})).filter(c=>c.free.length)}
 function checkPackage(b){const n=clean(b.n,40),d=clean(b.d,200),h=+b.h,days=+b.days,p=+b.p;
  if(n.length<2)throw E(400,"Name the package.","n");if(!Number.isInteger(h)||h<1||h>12)throw E(400,"Hours must be 1 to 12.","h");
  if(d.length<5)throw E(400,"Describe what is delivered.","d");if(!Number.isInteger(days)||days<1||days>60)throw E(400,"Delivery days must be 1 to 60.","days");
@@ -65,17 +67,23 @@ function setCreatorStatus(user,id,ver){needAdmin(user);const c=cr(id);if(!c)thro
  if(ver==="verified"){if(!c.idDoc)throw E(409,"This creator has not uploaded an ID yet.");if(!D.users.find(x=>x.id===c.userId)?.emailVerified)throw E(409,"This creator has not verified their email yet.")}
  c.ver=ver;audit(user,ver==="verified"?"creator.approve":"creator.suspend",c.id,c.name);return c}
 // ---- bookings
-function makeBooking(user,{creatorId,pk,date,slot,type}){
+function makeBooking(user,{creatorId,pk,date,slot,type,area,address,landmark,lat,lng,phone}){
  if(user.role!=="customer")throw E(403,"Only customers can book.");
  if(!user.emailVerified)throw E(403,"Verify your email before booking. We sent you a link.");
  const c=cr(creatorId);if(!c||c.ver!=="verified")throw E(404,"Creator not found.");ensureIds(c);
  const p=c.pk[pk];if(!Number.isInteger(pk)||!p)throw E(400,"Pick a package.","pk");
  if(!validDate(date))throw E(400,"Pick a valid date.","date");if(date<today())throw E(400,"Pick a date from today onwards.","date");if(date>addDays(today(),365))throw E(400,"Pick a date within a year.","date");
  if(!SLOTS.includes(slot))throw E(400,"Pick a time slot.","slot");if(!c.types.includes(type))throw E(400,"This creator does not offer that shoot type.","type");
+ if(!AREAS.includes(area))throw E(400,"Pick the area where the shoot will happen.","area");
+ if(stateOf(area)!==stateOf(c.area))throw E(409,`This creator works in ${stateOf(c.area)}. Pick an area in ${stateOf(c.area)}.`,"area");
+ address=clean(address,300);if(address.length<10)throw E(400,"Enter the full address where the creator should come.","address");landmark=clean(landmark,80);
+ const ph=normPhone(phone||user.phone);if(!ph)throw E(400,"Enter a mobile number the creator can reach on shoot day.","phone");
+ const la=lat===""||lat==null?NaN:+lat,lo=lng===""||lng==null?NaN:+lng,pin=la>=6&&la<=38&&lo>=68&&lo<=98?{lat:Math.round(la*1e5)/1e5,lng:Math.round(lo*1e5)/1e5}:null;
  if(blockedOn(c.id,date))throw E(409,"This creator is not available on that date.","date");if(slotTaken(c.id,date,slot))throw E(409,"That slot is taken. Pick another time.","slot");
  if(D.bookings.some(o=>o.customerId===user.id&&o.creatorId===c.id&&o.date===date&&o.slot===slot&&LIVE.includes(o.status)))throw E(409,"You already have a request for this slot.");
- const b={id:store.id("B"),customerId:user.id,creatorId:c.id,pkgIdx:pk,pkgId:p.id,pkg:{n:p.n,h:p.h,d:p.d,days:p.days,p:p.p},price:p.p,date,slot,type,status:"Requested",log:["Requested"],delivery:null,review:null,reason:null,offers:null,createdAt:now().toISOString()};D.bookings.push(b);return b}
-function replacements(b){return D.creators.filter(c=>c.ver==="verified"&&c.id!==b.creatorId&&c.types.includes(b.type)&&!slotTaken(c.id,b.date,b.slot))
+ const au=D.users.find(x=>x.id===user.id);if(au&&!au.phone)au.phone=ph;
+ const b={id:store.id("B"),customerId:user.id,creatorId:c.id,loc:{country:"India",state:stateOf(area),area,address,landmark,...(pin||{})},phone:ph,pkgIdx:pk,pkgId:p.id,pkg:{n:p.n,h:p.h,d:p.d,days:p.days,p:p.p},price:p.p,date,slot,type,status:"Requested",log:["Requested"],delivery:null,review:null,reason:null,offers:null,createdAt:now().toISOString()};D.bookings.push(b);return b}
+function replacements(b){return D.creators.filter(c=>c.ver==="verified"&&c.id!==b.creatorId&&(!b.loc||stateOf(c.area)===b.loc.state)&&c.types.includes(b.type)&&!slotTaken(c.id,b.date,b.slot))
  .map(c=>({c,i:c.pk.findIndex(p=>p.p<=b.price)})).filter(x=>x.i>=0).map(x=>({creatorId:x.c.id,pk:x.i}))}
 // true = refunded, false = provider failed (payment stays refund_failed, retryable), null = nothing to refund
 async function refundPayment(p){if(!p||!["paid","refund_failed"].includes(p.status))return null;
@@ -86,9 +94,9 @@ const payoutDueAt=b=>Date.parse(b.delivery.at)+DISPUTE_MS;
 const payoutState=b=>!(b.status==="Completed"&&b.delivery?.sent)?null:b.payoutPaid?"paid":now().getTime()>=payoutDueAt(b)?"due":"holding";
 const payoutAmt=b=>Math.round(b.price*(1-FEE));
 function view(b,user){const c=cr(b.creatorId),cu=D.users.find(u=>u.id===b.customerId),p=payOf(b.id);
- const v={id:b.id,status:b.status,date:b.date,slot:b.slot,type:b.type,pkg:b.pkg,price:b.price,creatorName:c?.name,log:b.log,delivery:b.delivery,review:b.review,reason:b.reason,payment:p?.status||null,
+ const v={id:b.id,status:b.status,date:b.date,slot:b.slot,type:b.type,pkg:b.pkg,price:b.price,creatorName:c?.name,loc:b.loc||null,log:b.log,delivery:b.delivery,review:b.review,reason:b.reason,payment:p?.status||null,
  offers:b.offers?b.offers.map(o=>({creatorId:o.creatorId,pk:o.pk,name:cr(o.creatorId)?.name,pkgName:cr(o.creatorId)?.pk[o.pk]?.n,price:cr(o.creatorId)?.pk[o.pk]?.p})):null};
- if(user.role!=="customer"){v.customerName=cu?.name;v.payout=payoutAmt(b);v.payoutState=payoutState(b);v.payoutRef=b.payoutPaid?.ref||null}return v}
+ if(user.role!=="customer"){v.customerName=cu?.name;if(user.role==="admin"||["Confirmed","In progress","Completed"].includes(b.status))v.customerPhone=b.phone||cu?.phone||null;v.payout=payoutAmt(b);v.payoutState=payoutState(b);v.payoutRef=b.payoutPaid?.ref||null}return v}
 function listBookings(user){let l=D.bookings;if(user.role==="customer")l=l.filter(b=>b.customerId===user.id);else if(user.role==="creator"){const c=creatorOf(user);l=c?l.filter(b=>b.creatorId===c.id):[]}
  return l.slice().reverse().map(b=>view(b,user))}
 async function act(user,id,action,body={}){const b=bk(id);if(!b)throw E(404,"Booking not found.");
@@ -104,7 +112,7 @@ async function act(user,id,action,body={}){const b=bk(id);if(!b)throw E(404,"Boo
  case"retry-refund":{need(isA);from("Refund pending");const ok=await refundPayment(payOf(b.id));audit(user,"refund.retry",b.id,ok?"ok":"failed");if(ok===false){const e=E(502,"The payment provider refused again: "+(payOf(b.id)?.refundError||"unknown error"));e.persist=true;throw e}setSt(b,"Refunded","refund retried by admin");break}
  case"offers":need(isA);from("Cancelled");b.offers=replacements(b);audit(user,"booking.offers",b.id);break;
  case"swap":{need(isC);from("Cancelled");const offered=(b.offers||[]).find(x=>x.creatorId===body.creatorId),o=offered&&replacements(b).find(x=>x.creatorId===offered.creatorId);if(!o)throw E(409,"That replacement is no longer available.");
-  const nb=makeBooking(user,{creatorId:o.creatorId,pk:o.pk,date:b.date,slot:b.slot,type:b.type});settle(b,await refundPayment(payOf(b.id)),"moved to replacement");return view(nb,user)}
+  const nb=makeBooking(user,{creatorId:o.creatorId,pk:o.pk,date:b.date,slot:b.slot,type:b.type,...(b.loc||{}),phone:b.phone});settle(b,await refundPayment(payOf(b.id)),"moved to replacement");return view(nb,user)}
  case"start":need(isP);from("Confirmed");if(!demo&&today()<b.date)throw E(409,"A shoot can start on its shoot date.");setSt(b,"In progress");break;
  case"complete":need(isP);from("In progress");setSt(b,"Completed");b.delivery={due:addDays(today(),b.pkg.days),sent:false};break;
  case"deliver":{need(isP);from("Completed");let u;try{u=new URL(String(body.url))}catch{throw E(400,"Enter a valid https link.","url")}if(u.protocol!=="https:"||String(body.url).length>500)throw E(400,"Enter a valid https link.","url");
@@ -149,7 +157,7 @@ async function forgot(email){const u=D.users.find(x=>x.email===String(email||"")
 const dropSessions=(uid,except)=>{for(const k of Object.keys(D.sessions))if(D.sessions[k].userId===uid&&k!==except)delete D.sessions[k]};
 function setPassword(u,password){const issues=passwordIssues(password,u.email);if(issues.length)throw E(400,issues[0],"password");u.passHash=hashPassword(password)}
 function resetPassword({token,password}){const{k,u}=takeToken(token,"reset");setPassword(u,password);u.emailVerified=true;delete D.tokens[k];for(const x of Object.keys(D.tokens))if(D.tokens[x].userId===u.id&&D.tokens[x].kind==="reset")delete D.tokens[x];dropSessions(u.id);return{ok:true}}
-function updateName(user,name){const u=D.users.find(x=>x.id===user.id);name=clean(name,60);if(name.length<2)throw E(400,"Enter your name.","name");u.name=name;const c=creatorOf(u);if(c)c.name=name;return uview(u)}
+function updateName(user,name,phone){const u=D.users.find(x=>x.id===user.id);name=clean(name,60);if(name.length<2)throw E(400,"Enter your name.","name");if(phone!==undefined){const ph=normPhone(phone);if(!ph)throw E(400,"Enter a valid 10-digit Indian mobile number.","phone");u.phone=ph}u.name=name;const c=creatorOf(u);if(c)c.name=name;return uview(u)}
 function changePassword(user,{current,password},token){const u=D.users.find(x=>x.id===user.id);if(!verifyPassword(String(current||""),u.passHash))throw E(400,"Your current password is wrong.","current");setPassword(u,password);dropSessions(u.id,token?sha(token):null);return{ok:true}}
 const logoutAll=user=>{dropSessions(user.id);return{ok:true}};
 function resetPasswordFor(email,password){const u=D.users.find(x=>x.email===String(email).trim().toLowerCase());if(!u)throw new Error("No user with that email.");setPassword(u,password);u.emailVerified=true;u.disabled=false;dropSessions(u.id);return uview(u)}
@@ -159,10 +167,10 @@ const portView=c=>(c.portfolio||[]).map(x=>({id:x.id,url:"/uploads/"+x.file,capt
 const ratingOf=c=>{const r=D.bookings.filter(b=>b.creatorId===c.id&&b.review).map(b=>b.review.rating);return r.length?{avg:Math.round(r.reduce((a,b)=>a+b,0)/r.length*10)/10,count:r.length}:{avg:0,count:0}};
 function getCreator(id){const c=cr(id);if(!c||c.ver!=="verified"||!c.pk.length)throw E(404,"Creator not found.");ensureIds(c);
  const reviews=D.bookings.filter(b=>b.creatorId===c.id&&b.review).slice(-10).reverse().map(b=>({rating:b.review.rating,comment:b.review.comment||"",date:(b.review.at||b.createdAt||"").slice(0,10),by:firstName(D.users.find(u=>u.id===b.customerId)?.name)}));
- return{id:c.id,name:c.name,area:c.area,types:c.types,exp:c.exp,bio:c.bio||"",pk:c.pk,portfolio:portView(c),rating:ratingOf(c),reviews}}
+ return{id:c.id,name:c.name,area:c.area,state:stateOf(c.area),types:c.types,exp:c.exp,bio:c.bio||"",pk:c.pk,portfolio:portView(c),rating:ratingOf(c),reviews}}
 function updateProfile(user,{area,types,bio,exp}){const c=needCreator(user);
  if(!AREAS.includes(area))throw E(400,"Pick your main area.","area");if(!Array.isArray(types)||!types.length||!types.every(t=>TYPES.includes(t)))throw E(400,"Pick at least one shoot type.","types");
- c.area=area;c.types=[...new Set(types)];c.bio=clean(bio,600);const e=clean(exp,60);if(e)c.exp=e;return c}
+ c.area=area;c.state=stateOf(area);c.country="India";c.types=[...new Set(types)];c.bio=clean(bio,600);const e=clean(exp,60);if(e)c.exp=e;return c}
 function setBlocked(user,{date,blocked}){const c=needCreator(user);if(!DAY.test(String(date))||!validDate(date))throw E(400,"Pick a valid date.","date");if(date<today())throw E(400,"Pick a date from today onwards.","date");if(date>addDays(today(),365))throw E(400,"Pick a date within a year.","date");
  c.blocked||=[];if(blocked===false){c.blocked=c.blocked.filter(x=>x!==date);return c}
  if(D.bookings.some(b=>b.creatorId===c.id&&b.date===date&&HELD.includes(b.status)))throw E(409,"You have a confirmed shoot on that date.","date");
@@ -207,5 +215,5 @@ return{register,recordConsent,createAdmin,login,authenticate,logout,logoutAll,li
  updateProfile,setBlocked,addPortfolio,removePortfolio,setIdDoc,readIdDoc,setPayout,
  payouts,markPayoutPaid,adminPayments,listPayments,retryRefund,receipt,adminUsers,setUserDisabled,listAudit,stats,uploads:up,
  adminCreators:u=>{needAdmin(u);return D.creators.map(c=>({id:c.id,name:c.name,area:c.area,ver:c.ver,packages:c.pk.length,hasId:!!c.idDoc,idAt:c.idDoc?.at||null,emailVerified:!!D.users.find(x=>x.id===c.userId)?.emailVerified,hasPayout:!!c.payout}))},
- myCreator:u=>{const c=creatorOf(u);if(!c)return null;ensureIds(c);return{id:c.id,name:c.name,area:c.area,ver:c.ver,types:c.types,exp:c.exp,bio:c.bio||"",pk:c.pk,blocked:c.blocked||[],portfolio:portView(c),hasId:!!c.idDoc,idAt:c.idDoc?.at||null,idKind:c.idDoc?.ext||null,payout:c.payout?{holder:c.payout.holder,kind:c.payout.kind,mask:c.payout.mask}:null}},
+ myCreator:u=>{const c=creatorOf(u);if(!c)return null;ensureIds(c);return{id:c.id,name:c.name,area:c.area,state:stateOf(c.area),country:"India",ver:c.ver,types:c.types,exp:c.exp,bio:c.bio||"",pk:c.pk,blocked:c.blocked||[],portfolio:portView(c),hasId:!!c.idDoc,idAt:c.idDoc?.at||null,idKind:c.idDoc?.ext||null,payout:c.payout?{holder:c.payout.holder,kind:c.payout.kind,mask:c.payout.mask}:null}},
  _today:today}}

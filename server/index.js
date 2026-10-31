@@ -41,12 +41,12 @@ if (!store.d.users.some(u => u.role === "admin")) {
 
 if (demo && !store.d.users.some(u => u.email === "customer@demo.test")) {
   const pw = "Demo-pass-2026", ok = u => { store.d.users.find(x => x.id === u.id).emailVerified = true; return u; };
-  ok(service.register({ name: "Demo Customer", email: "customer@demo.test", password: pw, role: "customer" }));
+  ok(service.register({ name: "Demo Customer", email: "customer@demo.test", password: pw, role: "customer", phone: "9876500001" }));
   for (const [n, a, t, k] of [
     ["Aarav Reddy", "Madhapur", ["Birthday", "Family"], [["Mini shoot", 1, "25 edited photos, online gallery", 3, 2500]]],
     ["Meera Iyer", "Banjara Hills", ["Reel", "Restaurant"], [["Reel pack", 2, "3 edited reels, 30 to 45 sec", 2, 6000]]]
   ]) {
-    const u = ok(service.register({ name: n, email: n.split(" ")[0].toLowerCase() + "@demo.test", password: pw, role: "creator", area: a, types: t }));
+    const u = ok(service.register({ name: n, email: n.split(" ")[0].toLowerCase() + "@demo.test", password: pw, role: "creator", phone: "98765000" + String(10 + Math.floor(Math.random() * 80)), area: a, types: t }));
     const c = store.d.creators.find(x => x.userId === u.id);
     c.ver = "verified"; c.pk = k.map(([n, h, d, days, p]) => ({ n, h, d, days, p }));
   }
