@@ -1,2 +1,3 @@
 const d=document.querySelector("#fdate");if(d)d.min=new Date(Date.now()+19800000).toISOString().slice(0,10);
 const st=document.querySelector(".finder [name=state]"),ar=document.querySelector(".finder [name=area]");if(st&&ar){const all=[...ar.options].slice(1);st.addEventListener("change",()=>{ar.innerHTML="";ar.append(new Option("Any area",""));all.forEach(o=>{if(!st.value||o.dataset.s===st.value)ar.append(o)});ar.value=""})}
+const sk=document.querySelector(".sticky"),tg=document.querySelector(".finder")||document.querySelector(".hcopy .btn");if(sk){if(tg&&"IntersectionObserver"in window)new IntersectionObserver(e=>sk.classList.toggle("on",!e[0].isIntersecting)).observe(tg);else sk.classList.add("on")}

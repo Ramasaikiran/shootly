@@ -18,6 +18,7 @@ UPD="26 October 2026"
 FONTS='<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="shared.css"><script src="fonts.js" defer></script>'
 FAQ=[("How do I book a photographer on Shootly?","Pick a shoot type and area, compare verified creators and packages, then send a request. The creator accepts, you pay, and the booking is confirmed."),
 ("Which cities do you cover?","We list photographers and videographers in "+CITYNAMES+". Creators list a home area, and you enter your shoot address when you book."),
+("Does it cost anything to use Shootly?","Requesting a booking is free and customers pay no platform fee. You pay the package price shown, which is all-in. Creators pay a platform fee only on completed bookings."),
 ("When is my booking confirmed?","Only after the creator accepts and your payment is verified. A request or a started payment alone does not confirm a booking."),
 ("What if the photographer cancels?","You are told straight away and shown replacement creators where available. You can accept one or take a full refund."),
 ("What is included in the price?","The price shown is all-in. Each package lists shoot hours, number of edited deliverables and the delivery deadline."),
@@ -56,13 +57,14 @@ def finder():
     pills='<label class="rp"><input type="radio" name="type" value="" checked><span>Any shoot</span></label>'+"".join(f'<label class="rp"><input type="radio" name="type" value="{n}"><span>{n}</span></label>' for n,_ in CATS)
     areas='<option value="">Any area</option>'+"".join(f'<option data-s="{s}">{a}</option>' for s,l in LOC.items() for a in l)
     states='<option value="">Any state</option>'+"".join(f'<option>{s}</option>' for s in LOC)
-    return f'<form class="finder card" action="browse.html" method="get" aria-labelledby="fh"><h2 id="fh">What are you shooting?</h2><fieldset class="rpills"><legend class="sr">Shoot type</legend>{pills}</fieldset><div class="frow"><label>Country<select name="country" disabled><option>India</option></select></label><label>State<select name="state">{states}</select></label></div><div class="frow"><label>Area<select name="area">{areas}</select></label><label>Date<input type="date" name="date" id="fdate"></label></div><button class="btn lg block" type="submit" data-cta="hero-search">Find my photographer</button><p class="micro">Free to request. Pay only after the creator accepts.</p></form>'
+    return f'<form class="finder card" action="browse.html" method="get" aria-labelledby="fh"><h2 id="fh">What are you shooting?</h2><fieldset class="rpills"><legend class="sr">Shoot type</legend>{pills}</fieldset><div class="frow"><label>State<select name="state">{states}</select></label><label>Area<select name="area">{areas}</select></label></div><label>Shoot date (optional)<input type="date" name="date" id="fdate"></label><button class="btn lg block" type="submit" data-cta="hero-search">Find my photographer</button><p class="micro">Free to request. Pay only after the creator accepts.</p></form>'
 def home():
     faq="".join(f'<details class="q"><summary>{q}</summary><p>{a}</p></details>' for q,a in FAQ)
     cats="".join(f'<a class="cat" href="browse.html?type={n}" data-cta="category-{n.lower()}"><b>{n}</b><span>{d}</span></a>' for n,d in CATS)
     trust="".join(f'<li>{i}<div><b>{t}</b><span>{d}</span></div></li>' for i,t,d in TRUST)
     return f'''<main id="main" class="wrap">
 <section class="hero2"><div class="hcopy"><p class="eyebrow">7 cities in Telangana and Andhra Pradesh</p><h1>Book a verified photographer. <em>Pay only when they accept.</em></h1><p class="lead">ID-checked photographers and videographers near you. See the all-in price and delivery date first.</p>
+<ul class="ticks"><li>ID-verified creators</li><li>All-in prices</li><li>Pay after they accept</li></ul>
 <p class="alt-cta">Are you a photographer? <a href="auth.html?mode=register" data-cta="creator-link">Apply to be listed</a></p></div>{finder()}</section>
 <section class="trust" aria-label="Why book with us"><ul>{trust}</ul></section>
 <section class="sect" id="how" aria-labelledby="h-how"><p class="eyebrow">How it works</p><h2 id="h-how">Three steps. Nothing hidden.</h2>
@@ -85,7 +87,7 @@ def ld():
     {"@type":"Service","serviceType":"Photography and videography booking marketplace","provider":{"@id":SITE+"#org"},"areaServed":[cityld(c) for c in CITIES]},
     faqld(FAQ)]
     return ldjson(g)
-STICKY='<style>.sticky{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--card);border-top:1px solid var(--line);padding:10px 18px calc(10px + env(safe-area-inset-bottom,0px));display:none}@media (max-width:640px){.sticky{display:block}.sticky .btn{width:100%}.foot{margin-bottom:70px}}.three{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}.cta{display:flex;gap:12px;flex-wrap:wrap}.micro{font-size:14px;color:var(--mute);margin:10px 0 0}</style>'
+STICKY='<style>.sticky{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--card);border-top:1px solid var(--line);padding:10px 18px calc(10px + env(safe-area-inset-bottom,0px));display:none;transform:translateY(110%);transition:transform .25s}.sticky.on{transform:none}@media (max-width:640px){.sticky{display:block}.sticky .btn{width:100%}.foot{margin-bottom:70px}}.three{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}.cta{display:flex;gap:12px;flex-wrap:wrap}.micro{font-size:14px;color:var(--mute);margin:10px 0 0}</style>'
 def ul(*x):return "<ul>"+"".join(f"<li>{i}</li>" for i in x)+"</ul>"
 LEGAL={}
 LEGAL["terms"]=("Terms and Conditions","The rules for using Shootly to book or offer photography and videography services.",f'''
@@ -175,7 +177,7 @@ def city_main(c):
 <section class="sect" aria-labelledby="h-f"><p class="eyebrow">FAQ</p><h2 id="h-f">Booking a photographer in {n}</h2>{fq}</section>
 <section class="sect" aria-labelledby="h-o"><p class="eyebrow">Other cities</p><h2 id="h-o">Also on Shootly</h2><div class="cats">{others}</div></section>
 <section class="band2" aria-labelledby="h-c"><h2 id="h-c">Photographer or videographer in {n}?</h2><p>Get booking requests from people near you. Set your packages, prices and calendar. See payout status on every shoot.</p><a class="btn" href="auth.html?mode=register" data-cta="city-creator">Apply to be listed</a></section></main>
-<div class="sticky"><a class="btn" href="{link}" data-cta="city-sticky">Find photographers in {n}</a></div>'''
+<div class="sticky"><a class="btn" href="{link}" data-cta="city-sticky">Find photographers in {n}</a></div><script src="landing.js" defer></script>'''
     g=[{"@type":"Service","serviceType":"Photography and videography booking","name":f"Photographers and videographers in {n}","provider":{"@id":SITE+"#org"},"areaServed":cityld(c),"url":SITE+cpage(c)},
        {"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":SITE},{"@type":"ListItem","position":2,"name":f"Photographers in {n}","item":SITE+cpage(c)}]},faqld(faq)]
     return main,ldjson(g)
