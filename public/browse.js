@@ -2,7 +2,7 @@ import {get,toast,todayIST} from "./app.js";import {creatorCard,esc,stateAreaFie
 const app=document.querySelector("#app"),dlg=document.querySelector("#dlg"),QP=new URLSearchParams(location.search);
 const F={type:TYPES.includes(QP.get("type"))?QP.get("type"):"",area:AREAS.includes(QP.get("area"))?QP.get("area"):"",date:/^\d{4}-\d{2}-\d{2}$/.test(QP.get("date")||"")?QP.get("date"):"",budget:"",state:STATES.includes(QP.get("state"))?QP.get("state"):""};
 const opt=(l,v)=>l.map(a=>`<option ${a===v?"selected":""}>${esc(a)}</option>`).join("");
-app.innerHTML=`<h1 class="h1">Find a photographer in Hyderabad</h1><p class="mute">Compare verified creators. Free to request. You pay only after the creator accepts.</p>
+app.innerHTML=`<h1 class="h1">Find a photographer near you</h1><p class="mute">Compare verified creators. Free to request. You pay only after the creator accepts.</p>
 <form class="fbar" id="sf"><div class="pills" role="group" aria-label="Shoot type"><button type="button" class="pill" data-type="" aria-pressed="${!F.type}">All shoots</button>${TYPES.map(t=>`<button type="button" class="pill" data-type="${esc(t)}" aria-pressed="${F.type===t}">${esc(t)}</button>`).join("")}</div>
 <div class="row2">${stateAreaFields({state:F.state,area:F.area,any:true,country:false})}<label>Shoot date<input type="date" name="date" min="${todayIST()}" value="${esc(F.date)}"></label><label>Max budget (₹)<input type="number" name="budget" min="0" step="500" placeholder="No limit"></label></div></form>
 <p class="mute" id="count" aria-live="polite"></p><div class="grid" id="cl">${skeleton(3)}</div>`;

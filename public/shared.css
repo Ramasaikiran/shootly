@@ -93,7 +93,7 @@ mark.fill{background:#FFE58A;color:#3a2b00;padding:0 4px;border-radius:3px}
 .band2{background:var(--ink);color:var(--bg);border-radius:20px;padding:36px 28px;margin:56px 0 0;display:grid;gap:12px}.band2 h2{margin:0}.band2 p{color:inherit;opacity:.8;margin:0;max-width:52ch}.band2 .btn{background:var(--ac);color:#0F1319;justify-self:start}
 details.q{border-bottom:1px solid var(--line);padding:14px 0}details.q summary{font-weight:600;cursor:pointer;min-height:32px}details.q p{margin:8px 0 0;max-width:68ch;color:var(--mute)}
 .foot{background:var(--card);border-top:1px solid var(--line);margin-top:64px;padding:44px 0 0;color:var(--mute);font-size:14.5px}
-.fgrid{display:grid;grid-template-columns:1.6fr 1fr 1fr 1.3fr;gap:28px}@media (max-width:760px){.fgrid{grid-template-columns:1fr 1fr}}
+.fgrid{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1.2fr;gap:28px}@media (max-width:760px){.fgrid{grid-template-columns:1fr 1fr}}
 .foot h2{font-size:13px;letter-spacing:.08em;text-transform:uppercase;margin:0 0 10px;color:var(--ink)}.foot nav a{display:block;padding:7px 0;color:var(--mute);text-decoration:none}.foot nav a:hover{color:var(--act);text-decoration:underline}
 .fbase{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;border-top:1px solid var(--line);margin-top:30px;padding:16px 18px calc(18px + env(safe-area-inset-bottom,0px))}
 .legal{max-width:780px;padding-top:30px}.legal h1{font-size:clamp(32px,5vw,46px);margin-bottom:6px}.legal h2{font-size:22px;margin:34px 0 8px}.legal p,.legal li{max-width:70ch}.legal li{margin:4px 0}

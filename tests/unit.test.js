@@ -81,7 +81,7 @@ test("late delivery: customer can report missing files only after the due date",
  await rejects(s.act(o.cust,b.id,"issue",{reason:"Files are late"}),409);w.clock.advance(4*864e5);const r=await s.act(o.cust,b.id,"issue",{reason:"Files are late"});assert.equal(r.status,"Disputed");const r2=await s.act(o.admin,b.id,"resolve",{decision:"refund"});assert.equal(r2.status,"Refunded");assert.equal(w.gateway.refunds.length,1)});
 
 test("locations: new cities, phone and shoot address rules",()=>{const w=makeWorld(),s=w.service,o=w.o||undefined;
- for(const a of["Vizag","Vijayawada","Guntur","Kurnool","Hitech City","Uppal","LB Nagar"])assert.ok(AREAS.includes(a),a);
+ for(const a of["Vizag","Vijayawada","Guntur","Kurnool","Hitech City","Uppal","LB Nagar","Karimnagar","Khammam"])assert.ok(AREAS.includes(a),a);
  assert.equal(stateOf("Vizag"),"Andhra Pradesh");assert.equal(stateOf("Uppal"),"Telangana");
  assert.equal(normPhone("+91 98765 43210"),"9876543210");assert.equal(normPhone("12345"),"");
  throwsS(()=>s.register({name:"Nophone",email:"np@y.co",password:PW,role:"customer"}),400);

@@ -1,5 +1,5 @@
 export const COUNTRIES=["India"];
-export const LOCATIONS={"Telangana":["Madhapur","Banjara Hills","Gachibowli","Hitech City","Secunderabad","Uppal","LB Nagar"],"Andhra Pradesh":["Vizag","Vijayawada","Guntur","Kurnool"]};
+export const LOCATIONS={"Telangana":["Madhapur","Banjara Hills","Gachibowli","Hitech City","Secunderabad","Uppal","LB Nagar","Karimnagar","Khammam"],"Andhra Pradesh":["Vizag","Vijayawada","Guntur","Kurnool"]};
 export const STATES=Object.keys(LOCATIONS);
 export const AREAS=STATES.flatMap(s=>LOCATIONS[s]);
 export const stateOf=a=>STATES.find(s=>LOCATIONS[s].includes(a))||"";
