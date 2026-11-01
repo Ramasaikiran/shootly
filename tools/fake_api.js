@@ -20,8 +20,8 @@ const st=(b,s,n)=>{b.status=s;b.log.push(s+(n?` (${n})`:""))};
 const addDays=(d,n)=>new Date(Date.parse(d+"T00:00:00Z")+n*864e5).toISOString().slice(0,10);
 async function fetch(url,o={}){await new Promise(r=>setTimeout(r,120));const u=new URL(url,"http://x"),p=u.pathname,m=(o.method||"GET").toUpperCase(),body=o.body?JSON.parse(o.body):{};let x;
  if(p==="/api/me")return O({user:me,creator:ROLE==="creator"?{id:"c1",name:myC().name,area:myC().area,ver:myC().ver,types:myC().types,pk:myC().pk}:null,config:{mock:true}});
- if(p==="/api/creators"){const q=u.searchParams;let l=C.filter(c=>c.ver==="verified"&&c.pk.length&&(!q.get("area")||c.area===q.get("area"))&&(!q.get("type")||c.types.includes(q.get("type")))&&(!q.get("budget")||c.pk.some(k=>k.p<=+q.get("budget"))));
-  return O({creators:l.map(c=>({id:c.id,name:c.name,area:c.area,types:c.types,exp:c.exp,pk:c.pk,free:q.get("date")?["10:00","16:00"].filter(s=>!held(c.id,q.get("date"),s)):["10:00","16:00"]})).filter(c=>c.free.length)})}
+ if(p==="/api/creators"){const q=u.searchParams;let l=C.filter(c=>c.ver==="verified"&&c.pk.length&&(!q.get("type")||c.types.includes(q.get("type")))&&(!q.get("budget")||c.pk.some(k=>k.p<=+q.get("budget"))));
+  const wa=q.get("area");l=[...l].sort((x,y)=>(wa&&x.area===wa?0:1)-(wa&&y.area===wa?0:1));return O({creators:l.map(c=>({id:c.id,name:c.name,area:c.area,types:c.types,exp:c.exp,pk:c.pk,free:q.get("date")?["10:00","16:00"].filter(s=>!held(c.id,q.get("date"),s)):["10:00","16:00"]})).filter(c=>c.free.length)})}
  if(p==="/api/bookings"&&m==="GET")return O({bookings:B.filter(b=>ROLE==="admin"||(ROLE==="customer"?b.whoId==="u1":b.cid==="c1")).slice().reverse().map(view)});
  if(p==="/api/bookings"&&m==="POST"){const c=cr(body.creatorId),k=c.pk[body.pk];if(!body.date||body.date<today)return E(400,"Pick a date from today onwards.","date");if(held(c.id,body.date,body.slot))return E(409,"That slot is taken. Pick another time.","slot");
   const b=mkB("B"+ ++seq,c.id,"Priya Sharma","u1",body.pk,body.date,body.slot,body.type,"Requested");B.push(b);return O({booking:view(b)})}

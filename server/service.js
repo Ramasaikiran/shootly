@@ -51,10 +51,9 @@ function authenticate(token){if(!token)return null;const k=sha(token),s=D.sessio
 const logout=token=>{if(token)delete D.sessions[sha(token)]};
 // ---- creators
 function listCreators({area,type,date,budget,state}={},){let l=D.creators.filter(c=>c.ver==="verified"&&c.pk.length);
- if(state&&!area)l=l.filter(c=>stateOf(c.area)===state);
- if(area&&AREAS.includes(area))l=l.filter(c=>c.area===area);if(type&&TYPES.includes(type))l=l.filter(c=>c.types.includes(type));
+ const wa=AREAS.includes(area)?area:"",ws=wa?stateOf(wa):state,rank=c=>wa&&c.area===wa?0:ws&&stateOf(c.area)===ws?1:2;if(type&&TYPES.includes(type))l=l.filter(c=>c.types.includes(type));
  if(budget&&+budget>0)l=l.filter(c=>c.pk.some(p=>p.p<=+budget));
- return l.map(c=>{ensureIds(c);return c}).map(c=>({id:c.id,name:c.name,area:c.area,state:stateOf(c.area),types:c.types,exp:c.exp,bio:c.bio||"",rating:ratingOf(c),cover:portView(c)[0]?.url||null,pk:c.pk,free:date&&validDate(date)?SLOTS.filter(s=>!slotTaken(c.id,date,s)):SLOTS})).filter(c=>c.free.length)}
+ return l.map(c=>{ensureIds(c);return c}).sort((x,y)=>rank(x)-rank(y)).map(c=>({near:wa||ws?["area","state","other"][rank(c)]:"",id:c.id,name:c.name,area:c.area,state:stateOf(c.area),types:c.types,exp:c.exp,bio:c.bio||"",rating:ratingOf(c),cover:portView(c)[0]?.url||null,pk:c.pk,free:date&&validDate(date)?SLOTS.filter(s=>!slotTaken(c.id,date,s)):SLOTS})).filter(c=>c.free.length)}
 function checkPackage(b){const n=clean(b.n,40),d=clean(b.d,200),h=+b.h,days=+b.days,p=+b.p;
  if(n.length<2)throw E(400,"Name the package.","n");if(!Number.isInteger(h)||h<1||h>12)throw E(400,"Hours must be 1 to 12.","h");
  if(d.length<5)throw E(400,"Describe what is delivered.","d");if(!Number.isInteger(days)||days<1||days>60)throw E(400,"Delivery days must be 1 to 60.","days");

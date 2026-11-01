@@ -1,9 +1,9 @@
 import {post,toast,todayIST} from "./app.js";import {esc,inr,stateAreaFields,wireStateArea} from "./components.js";import {SLOTS,stateOf} from "./policy.js";
 const opt=(l,v)=>l.map(a=>`<option ${a===v?"selected":""}>${esc(a)}</option>`).join("");
-export function openBooking(dlg,c,pi,{date="",type="",phone="",onDone}={}){const p=c.pk[pi],st=c.state||stateOf(c.area);
+export function openBooking(dlg,c,pi,{date="",type="",phone="",area="",onDone}={}){const p=c.pk[pi],st=c.state||stateOf(c.area);
  dlg.innerHTML=`<h3>${esc(p.n)} with ${esc(c.name)}</h3><p class="mute">${inr(p.p)} all-in · ${esc(p.h)} hr · ${esc(p.d)} · files in ${esc(p.days)} days.</p><p><span class="tag ok">Free to request</span> You pay only after the creator accepts.</p>
  <form id="bf" style="display:grid;gap:12px"><label>Shoot date<input type="date" name="date" required min="${todayIST()}" value="${esc(date)}"></label><label>Time slot<select name="slot">${opt(SLOTS)}</select></label><label>Shoot type<select name="type">${opt(c.types,type)}</select></label>
- <fieldset class="loc"><legend>Where should the creator come?</legend>${stateAreaFields({area:c.area})}
+ <fieldset class="loc"><legend>Where should the creator come?</legend>${stateAreaFields({area:area||c.area})}
  <label>Full address<textarea name="address" required minlength="10" maxlength="300" rows="3" placeholder="House or flat no., building, street"></textarea></label><label>Landmark (optional)<input name="landmark" maxlength="80" placeholder="Near…"></label>
  <input type="hidden" name="lat"><input type="hidden" name="lng"><button class="btn alt sm" type="button" id="pin">Use my current location</button><p class="hint" id="pinst" aria-live="polite">The creator reaches this exact place on your shoot date.</p></fieldset>
  <label>Mobile number<span class="phone"><span class="cc2" aria-hidden="true">+91</span><input name="phone" type="tel" inputmode="numeric" autocomplete="tel-national" maxlength="14" required placeholder="98765 43210" value="${esc(phone)}"></span></label><p class="hint">Shared with the creator only after your booking is confirmed.</p>

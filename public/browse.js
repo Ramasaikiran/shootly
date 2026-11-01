@@ -8,7 +8,7 @@ app.innerHTML=`<h1 class="h1">Find a photographer near you</h1><p class="mute">C
 <p class="mute" id="count" aria-live="polite"></p><div class="grid" id="cl">${skeleton(3)}</div>`;
 const sf=document.querySelector("#sf");wireStateArea(sf);
 async function load(){const q=new URLSearchParams(Object.entries(F).filter(([,v])=>v));window.history.replaceState(null,"",q.toString()?"?"+q:location.pathname);
- const{creators}=await get("/api/creators?"+q);document.querySelector("#count").textContent=`${creators.length} verified creator${creators.length===1?"":"s"}${F.date?" free on "+F.date:""}`;
+ const{creators}=await get("/api/creators?"+q);document.querySelector("#count").textContent=`${creators.length} verified creator${creators.length===1?"":"s"}${F.date?" free on "+F.date:""}${F.area?". Nearest to "+F.area+" first. Any creator can be booked for your location.":""}`;
  document.querySelector("#cl").innerHTML=creators.length?creators.map((c,i)=>creatorCard(c,i,!!F.date)).join(""):`<div style="grid-column:1/-1">${empty({icon:"search",title:"No creators match",text:"Try a different area, date or budget, or pick All shoots.",cta:"Clear filters",act:"clear"})}</div>`}
 sf.addEventListener("submit",e=>e.preventDefault());
 sf.addEventListener("change",()=>{F.state=sf.elements.state.value;F.area=sf.elements.area.value;F.date=sf.elements.date.value;F.budget=sf.elements.budget.value;load()});
@@ -18,5 +18,5 @@ document.querySelector("#cl").addEventListener("click",async e=>{const t=e.targe
  const next=`customer.html?book=${t.dataset.c}~${t.dataset.p}${F.date?"&date="+F.date:""}${F.type?"&type="+encodeURIComponent(F.type):""}`;
  if(!me)return location.assign("auth.html?mode=register&next="+encodeURIComponent(next));
  if(me.role!=="customer")return toast("Sign in with a customer account to book.");
- const{creators}=await get("/api/creators"),c=creators.find(x=>x.id===t.dataset.c);if(c)openBooking(dlg,c,+t.dataset.p,{date:F.date,type:F.type,phone:me.phone||"",onDone:()=>location.assign("customer.html")})});
+ const{creators}=await get("/api/creators"),c=creators.find(x=>x.id===t.dataset.c);if(c)openBooking(dlg,c,+t.dataset.p,{date:F.date,type:F.type,phone:me.phone||"",area:F.area,onDone:()=>location.assign("customer.html")})});
 await load();
