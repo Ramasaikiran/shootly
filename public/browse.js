@@ -7,13 +7,16 @@ app.innerHTML=`<h1 class="h1">Find a photographer near you</h1><p class="mute">C
 <div class="row2">${stateAreaFields({state:F.state,area:F.area,any:true,country:false})}<label>Shoot date<input type="date" name="date" min="${todayIST()}" value="${esc(F.date)}"></label><label>Max budget (₹)<input type="number" name="budget" min="0" step="500" placeholder="No limit"></label></div></form>
 <p class="mute" id="count" aria-live="polite"></p><div class="grid" id="cl">${skeleton(3)}</div>`;
 const sf=document.querySelector("#sf");wireStateArea(sf);
-async function load(){const q=new URLSearchParams(Object.entries(F).filter(([,v])=>v));window.history.replaceState(null,"",q.toString()?"?"+q:location.pathname);
- const{creators}=await get("/api/creators?"+q);document.querySelector("#count").textContent=`${creators.length} verified creator${creators.length===1?"":"s"}${F.date?" free on "+F.date:""}${F.area?". Nearest to "+F.area+" first. Any creator can be booked for your location.":""}`;
+let seq=0;
+async function load(){const my=++seq,q=new URLSearchParams(Object.entries(F).filter(([,v])=>v));window.history.replaceState(null,"",q.toString()?"?"+q:location.pathname);
+ let creators;try{({creators}=await get("/api/creators?"+q))}catch{if(my===seq){document.querySelector("#count").textContent="";document.querySelector("#cl").innerHTML=`<div style="grid-column:1/-1">${empty({icon:"search",title:"Can't load photographers",text:"We could not reach the server. Check your connection and try again.",cta:"Try again",act:"retry"})}</div>`}return}
+ if(my!==seq)return;document.querySelector("#count").textContent=`${creators.length} verified creator${creators.length===1?"":"s"}${F.date?" free on "+F.date:""}${F.area?". Nearest to "+F.area+" first. Any creator can be booked for your location.":""}`;
  document.querySelector("#cl").innerHTML=creators.length?creators.map((c,i)=>creatorCard(c,i,!!F.date)).join(""):`<div style="grid-column:1/-1">${empty({icon:"search",title:"No creators match",text:"Try a different area, date or budget, or pick All shoots.",cta:"Clear filters",act:"clear"})}</div>`}
 sf.addEventListener("submit",e=>e.preventDefault());
 sf.addEventListener("change",()=>{F.state=sf.elements.state.value;F.area=sf.elements.area.value;F.date=sf.elements.date.value;F.budget=sf.elements.budget.value;load()});
 sf.addEventListener("click",e=>{const p=e.target.closest(".pill");if(!p)return;F.type=p.dataset.type;sf.querySelectorAll(".pill").forEach(x=>x.setAttribute("aria-pressed",String(x===p)));load()});
-app.addEventListener("click",e=>{if(e.target.closest('[data-goto="clear"]')){Object.assign(F,{type:"",area:"",date:"",budget:"",state:""});sf.reset();sf.elements.area.innerHTML=areaOpts("","",true);sf.querySelectorAll(".pill").forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.type==="")));load()}});
+app.addEventListener("click",e=>{if(e.target.closest('[data-goto="retry"]')){document.querySelector("#cl").innerHTML=skeleton(3);load();return}
+ if(e.target.closest('[data-goto="clear"]')){Object.assign(F,{type:"",area:"",date:"",budget:"",state:""});sf.reset();sf.elements.area.innerHTML=areaOpts("","",true);sf.querySelectorAll(".pill").forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.type==="")));load()}});
 document.querySelector("#cl").addEventListener("click",async e=>{const t=e.target.closest('[data-act="book"]');if(!t)return;let me=null;try{me=(await get("/api/me")).user}catch{}
  const next=`customer.html?book=${t.dataset.c}~${t.dataset.p}${F.date?"&date="+F.date:""}${F.type?"&type="+encodeURIComponent(F.type):""}`;
  if(!me)return location.assign("auth.html?mode=register&next="+encodeURIComponent(next));

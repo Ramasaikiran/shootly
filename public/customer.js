@@ -12,7 +12,9 @@ app.innerHTML=`<div class="phead"><div><h1 class="h1">Hi ${esc(me.user.name.spli
 mountAccount(document.querySelector("#ac"),me);
 const tabs=tabsUI(document.querySelector("#tabs"),[{id:"find",label:"Find a creator"},{id:"bookings",label:"My bookings"},{id:"payments",label:"Payments"},{id:"account",label:"Account"}]);
 const sf=document.querySelector("#sf");sf.elements.date.value=F.date;
-async function loadCreators(){const q=new URLSearchParams(Object.entries(F).filter(([,v])=>v));const{creators}=await get("/api/creators?"+q);
+let cseq=0;
+async function loadCreators(){const my=++cseq,q=new URLSearchParams(Object.entries(F).filter(([,v])=>v));let creators;try{({creators}=await get("/api/creators?"+q))}catch{if(my===cseq){document.querySelector("#count").textContent="";document.querySelector("#cl").innerHTML='<div style="grid-column:1/-1"><p class="mute">We could not reach the server. Reload the page to try again.</p></div>'}return}
+ if(my!==cseq)return;
  document.querySelector("#count").textContent=`${creators.length} verified creator${creators.length===1?"":"s"}${F.date?" free on "+F.date:""}${F.area?". Nearest to "+F.area+" first. Any creator can be booked for your location.":""}`;
  document.querySelector("#cl").innerHTML=creators.length?creators.map((c,i)=>creatorCard(c,i,!!F.date)).join(""):`<div style="grid-column:1/-1">${empty({icon:"search",title:"No creators match",text:"Try a different area, date or budget, or pick All shoots.",cta:"Clear filters",act:"clear"})}</div>`}
 async function loadBookings(){const{bookings}=await get("/api/bookings"),g=groupCustomer(bookings);
