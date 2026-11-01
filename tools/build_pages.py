@@ -53,6 +53,9 @@ def proof():
     if not PROOF:return ''
     cards="".join(f'<figure class="card proof"><blockquote>“{_h.escape(q["quote"])}”</blockquote><figcaption>{_h.escape(q["name"])} · {_h.escape(q["shoot"])}</figcaption></figure>' for q in PROOF)
     return f'<section class="sect" aria-labelledby="h-proof"><p class="eyebrow">Customers</p><h2 id="h-proof">What customers say</h2><div class="three">{cards}</div></section>'
+def wherecard():
+    rows="".join(f'<li style="--i:{i}"><a href="{cpage(c)}" data-cta="where-{c["slug"]}"><span class="dot" aria-hidden="true"></span><b>{c["name"]}</b><span class="st">{c["state"]}</span></a></li>' for i,c in enumerate(CITIES))
+    return f'<aside class="card wc" aria-labelledby="wch"><h2 id="wch">Find us in</h2><ul>{rows}</ul><p class="mute">Tap a city to see photographers there.</p></aside>'
 def finder():
     pills='<label class="rp"><input type="radio" name="type" value="" checked><span>Any shoot</span></label>'+"".join(f'<label class="rp"><input type="radio" name="type" value="{n}"><span>{n}</span></label>' for n,_ in CATS)
     areas='<option value="">Any area</option>'+"".join(f'<option data-s="{s}">{a}</option>' for s,l in LOC.items() for a in l)
@@ -63,9 +66,10 @@ def home():
     cats="".join(f'<a class="cat" href="browse.html?type={n}" data-cta="category-{n.lower()}"><b>{n}</b><span>{d}</span></a>' for n,d in CATS)
     trust="".join(f'<li>{i}<div><b>{t}</b><span>{d}</span></div></li>' for i,t,d in TRUST)
     return f'''<main id="main" class="wrap">
-<section class="hero2"><div class="hcopy"><p class="eyebrow">7 cities in Telangana and Andhra Pradesh</p><h1>Book a verified photographer. <em>Pay only when they accept.</em></h1><p class="lead">ID-checked photographers and videographers near you. See the all-in price and delivery date first.</p>
+<section class="hero2"><div class="hcopy"><h1>Book a verified photographer. <em>Pay only when they accept.</em></h1><p class="lead">ID-checked photographers and videographers near you. See the all-in price and delivery date first.</p>
 <ul class="ticks"><li>ID-verified creators</li><li>All-in prices</li><li>Pay after they accept</li></ul>
-<p class="alt-cta">Are you a photographer? <a href="auth.html?mode=register" data-cta="creator-link">Apply to be listed</a></p></div>{finder()}</section>
+<p class="cta"><a class="btn lg" href="browse.html" data-cta="hero-browse">Find my photographer</a></p><p class="micro">Free to request. Pay only after the creator accepts.</p>
+<p class="alt-cta">Are you a photographer? <a href="auth.html?mode=register" data-cta="creator-link">Apply to be listed</a></p></div>{wherecard()}</section>
 <section class="trust" aria-label="Why book with us"><ul>{trust}</ul></section>
 <section class="sect" id="how" aria-labelledby="h-how"><p class="eyebrow">How it works</p><h2 id="h-how">Three steps. Nothing hidden.</h2>
 <ol class="steps"><li><h3>Search and compare</h3><p class="mute">Choose shoot type, area and date. See packages, prices and delivery times. No account needed.</p></li><li><h3>Send a request</h3><p class="mute">Create a free account to send it. The creator accepts or declines. You are not charged yet.</p></li><li><h3>Pay to confirm</h3><p class="mute">Pay when accepted. Your slot is locked. Get your files by the deadline on your booking.</p></li></ol></section>
