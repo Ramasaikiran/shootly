@@ -187,3 +187,6 @@ html{-webkit-text-size-adjust:100%}a,button,select,input,summary{touch-action:ma
 @keyframes wchl{0%{background:transparent;transform:none}3%,12%{background:rgba(255,90,31,.12);transform:translateX(6px)}16%,100%{background:transparent;transform:none}}
 @keyframes wcping{0%{transform:scale(1);opacity:.55}100%{transform:scale(3);opacity:0}}
 @media (prefers-reduced-motion:reduce){.wc li a,.wc .dot::after{animation:none}}
+
+.cta{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0 0}.cta .btn{justify-content:center;text-align:center}
+@media (max-width:640px){.cta .btn{flex:1 1 100%}footer,.foot{padding-bottom:84px}}

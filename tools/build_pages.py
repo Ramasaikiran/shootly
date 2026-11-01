@@ -34,13 +34,13 @@ def head(title,desc,path,index=True,ld="",city=None):
 {geo}<meta property="og:type" content="website"><meta property="og:title" content="{title}"><meta property="og:description" content="{desc}"><meta property="og:url" content="{SITE}{path}"><meta property="og:locale" content="en_IN"><meta name="twitter:card" content="summary"><meta name="theme-color" content="#2442E8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%232442E8'/><circle cx='16' cy='16' r='7' fill='none' stroke='white' stroke-width='3'/></svg>">
 {FONTS}{ld}</head><body><a class="skip" href="#main">Skip to content</a>'''
-HEADER='''<header class="top"><div class="wrap bar"><a class="logo" href="index.html">Shootly</a><nav class="links" aria-label="Main"><a class="l" href="index.html#cities">Cities</a><a class="l" href="index.html#how">How it works</a><a class="l" href="index.html#faq">FAQ</a><a class="l" href="auth.html">Sign in</a><a class="btn sm" href="browse.html" data-cta="header-browse">Find a photographer</a></nav></div></header>'''
+HEADER='''<header class="top"><div class="wrap bar"><a class="logo" href="index.html">Shootly</a><nav class="links" aria-label="Main"><a class="l" href="index.html#cities">Cities</a><a class="l" href="auth.html?mode=register">For photographers</a><a class="l" href="index.html#how">How it works</a><a class="l" href="index.html#faq">FAQ</a><a class="l" href="auth.html">Sign in</a><a class="btn sm" href="browse.html" data-cta="header-browse">Find a photographer</a></nav></div></header>'''
 FOOTER=f'''<footer class="foot"><div class="wrap fgrid"><div><a class="logo" href="index.html">Shootly</a><p>Verified photographers and videographers in Hyderabad, Vizag, Vijayawada, Guntur, Kurnool, Karimnagar and Khammam.</p><p>Payments processed by Razorpay.</p></div>
 <nav aria-label="Product"><h2>Product</h2><a href="browse.html">Find a photographer</a><a href="index.html#how">How it works</a><a href="index.html#faq">FAQ</a></nav>
 <nav aria-label="Cities"><h2>Cities</h2>{"".join(f'<a href="{cpage(c)}">{c["name"]}</a>' for c in CITIES)}</nav>
 <nav aria-label="Creators"><h2>Creators</h2><a href="auth.html?mode=register">Join as a creator</a><a href="auth.html">Creator sign in</a></nav>
 <nav aria-label="Legal"><h2>Legal</h2><a href="terms.html">Terms and Conditions</a><a href="privacy.html">Privacy Policy</a><a href="refunds.html">Refund and Cancellation Policy</a><a href="contact.html">Contact and grievance</a></nav></div>
-<div class="wrap fbase"><span>© 2026 {CO}. All rights reserved.</span><span>Support: {SUP}</span></div></footer>'''
+<div class="wrap fbase"><span>© 2026 Shootly. All rights reserved.</span><span><a href="contact.html">Support and grievance</a></span></div></footer>'''
 CATS=[("Birthday","Parties, cake moments, candid fun"),("Family","Portraits at home or outdoors"),("Graduation","Convocation and campus shoots"),("Reel","Short videos for Instagram"),("Product","Clean photos for your store"),("Restaurant","Food, menu and venue content")]
 def sv(d):return f'<svg class="ti" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{d}</svg>'
 TRUST=[(sv('<path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"/><path d="m9 12 2 2 4-4"/>'),"ID-verified creators","Reviewed by our team before they are listed."),
@@ -55,7 +55,7 @@ def proof():
     return f'<section class="sect" aria-labelledby="h-proof"><p class="eyebrow">Customers</p><h2 id="h-proof">What customers say</h2><div class="three">{cards}</div></section>'
 def wherecard():
     rows="".join(f'<li style="--i:{i}"><a href="{cpage(c)}" data-cta="where-{c["slug"]}"><span class="dot" aria-hidden="true"></span><b>{c["name"]}</b><span class="st">{c["state"]}</span></a></li>' for i,c in enumerate(CITIES))
-    return f'<aside class="card wc" aria-labelledby="wch"><h2 id="wch">Find us in</h2><ul>{rows}</ul><p class="mute">Tap a city to see photographers there.</p></aside>'
+    return f'<aside class="card wc" id="cities" aria-labelledby="wch"><h2 id="wch">Find us in</h2><ul>{rows}</ul><p class="mute">Tap a city to see photographers there.</p></aside>'
 def finder():
     pills='<label class="rp"><input type="radio" name="type" value="" checked><span>Any shoot</span></label>'+"".join(f'<label class="rp"><input type="radio" name="type" value="{n}"><span>{n}</span></label>' for n,_ in CATS)
     areas='<option value="">Any area</option>'+"".join(f'<option data-s="{s}">{a}</option>' for s,l in LOC.items() for a in l)
@@ -68,15 +68,14 @@ def home():
     return f'''<main id="main" class="wrap">
 <section class="hero2"><div class="hcopy"><h1>Book a verified photographer. <em>Pay only when they accept.</em></h1><p class="lead">ID-checked photographers and videographers near you. See the all-in price and delivery date first.</p>
 <ul class="ticks"><li>ID-verified creators</li><li>All-in prices</li><li>Pay after they accept</li></ul>
-<p class="cta"><a class="btn lg" href="browse.html" data-cta="hero-browse">Find my photographer</a></p><p class="micro">Free to request. Pay only after the creator accepts.</p>
-<p class="alt-cta">Are you a photographer? <a href="auth.html?mode=register" data-cta="creator-link">Apply to be listed</a></p></div>{wherecard()}</section>
+<p class="cta"><a class="btn lg" href="browse.html" data-cta="hero-browse">Find my photographer</a><a class="btn alt" href="auth.html?mode=register" data-cta="hero-creator">Photographer? Apply to be listed</a></p><p class="micro">Free to request. Pay only after the creator accepts.</p>
+</div>{wherecard()}</section>
 <section class="trust" aria-label="Why book with us"><ul>{trust}</ul></section>
 <section class="sect" id="how" aria-labelledby="h-how"><p class="eyebrow">How it works</p><h2 id="h-how">Three steps. Nothing hidden.</h2>
 <ol class="steps"><li><h3>Search and compare</h3><p class="mute">Choose shoot type, area and date. See packages, prices and delivery times. No account needed.</p></li><li><h3>Send a request</h3><p class="mute">Create a free account to send it. The creator accepts or declines. You are not charged yet.</p></li><li><h3>Pay to confirm</h3><p class="mute">Pay when accepted. Your slot is locked. Get your files by the deadline on your booking.</p></li></ol></section>
 <section class="sect" id="shoots" aria-labelledby="h-shoots"><p class="eyebrow">What we cover</p><h2 id="h-shoots">Pick your kind of shoot</h2><div class="cats">{cats}</div></section>
-<section class="sect" id="cities" aria-labelledby="h-ci"><p class="eyebrow">Where we work</p><h2 id="h-ci">Find a photographer in your city</h2><div class="cats">{"".join(f'<a class="cat" href="{cpage(c)}" data-cta="city-{c["slug"]}"><b>{c["name"]}</b><span>{c["state"]}</span></a>' for c in CITIES)}</div></section>
 <section class="sect" id="pricing" aria-labelledby="h-pr"><p class="eyebrow">Pricing</p><h2 id="h-pr">The price you see is the price you pay</h2><div class="split">
-<div class="card"><h3>For customers</h3><p class="mute">Example: Mini shoot, 1 hr, 25 edited photos, delivered in 3 days.</p><table class="bill"><tr><td>Package price</td><td>₹2,500</td></tr><tr><td>Platform fees for you</td><td>₹0</td></tr><tr class="t"><td>You pay</td><td>₹2,500</td></tr></table><p class="micro">Example. Creators set their own prices. {F("Confirm tax treatment")}</p></div>
+<div class="card"><h3>For customers</h3><p class="mute">Example: Mini shoot, 1 hr, 25 edited photos, delivered in 3 days.</p><table class="bill"><tr><td>Package price</td><td>₹2,500</td></tr><tr><td>Platform fees for you</td><td>₹0</td></tr><tr class="t"><td>You pay</td><td>₹2,500</td></tr></table><p class="micro">Example. Creators set their own prices.</p></div>
 <div class="card"><h3>For creators</h3><p class="mute">Same booking, from your side. We take a platform fee only on completed bookings.</p><table class="bill"><tr><td>Booking value</td><td>₹2,500</td></tr><tr><td>Platform fee (12%)</td><td>− ₹300</td></tr><tr class="t"><td>You earn</td><td>₹2,200</td></tr></table><p class="micro">Platform fee. Shown before you accept any booking.</p></div></div></section>
 {proof()}
 <section class="sect" id="faq" aria-labelledby="h-f"><p class="eyebrow">FAQ</p><h2 id="h-f">Questions people ask</h2>{faq}</section>
