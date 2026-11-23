@@ -1,4 +1,4 @@
-import {get,toast,todayIST} from "./app.js";import {creatorCard,esc,stateAreaFields,wireStateArea,areaOpts} from "./components.js";import {skeleton,empty} from "./panel.js";import {AREAS,TYPES,STATES,stateOf} from "./policy.js";import {openBooking} from "./booking.js";
+import {get,toast,todayIST} from "./app.js";import {creatorCard,wirePackageSelect,esc,stateAreaFields,wireStateArea,areaOpts} from "./components.js";import {skeleton,empty} from "./panel.js";import {AREAS,TYPES,STATES,stateOf} from "./policy.js";import {openBooking} from "./booking.js";
 const app=document.querySelector("#app"),dlg=document.querySelector("#dlg"),QP=new URLSearchParams(location.search);
 const F={type:TYPES.includes(QP.get("type"))?QP.get("type"):"",area:AREAS.includes(QP.get("area"))?QP.get("area"):"",date:/^\d{4}-\d{2}-\d{2}$/.test(QP.get("date")||"")?QP.get("date"):"",budget:"",state:STATES.includes(QP.get("state"))?QP.get("state"):""};
 const opt=(l,v)=>l.map(a=>`<option ${a===v?"selected":""}>${esc(a)}</option>`).join("");
@@ -12,7 +12,7 @@ async function load(){const my=++seq,q=new URLSearchParams(Object.entries(F).fil
  let creators;try{({creators}=await get("/api/creators?"+q))}catch{if(my===seq){document.querySelector("#count").textContent="";document.querySelector("#cl").innerHTML=`<div style="grid-column:1/-1">${empty({icon:"search",title:"Can't load photographers",text:"We could not reach the server. Check your connection and try again.",cta:"Try again",act:"retry"})}</div>`}return}
  if(my!==seq)return;document.querySelector("#count").textContent=`${creators.length} verified creator${creators.length===1?"":"s"}${F.date?" free on "+F.date:""}${F.area?". Nearest to "+F.area+" first. Any creator can be booked for your location.":""}`;
  document.querySelector("#cl").innerHTML=creators.length?creators.map((c,i)=>creatorCard(c,i,!!F.date)).join(""):`<div style="grid-column:1/-1">${empty({icon:"search",title:"No creators match",text:"Try a different area, date or budget, or pick All shoots.",cta:"Clear filters",act:"clear"})}</div>`}
-sf.addEventListener("submit",e=>e.preventDefault());
+wirePackageSelect(document.querySelector("#cl"));sf.addEventListener("submit",e=>e.preventDefault());
 sf.addEventListener("change",()=>{F.state=sf.elements.state.value;F.area=sf.elements.area.value;F.date=sf.elements.date.value;F.budget=sf.elements.budget.value;load()});
 sf.addEventListener("click",e=>{const p=e.target.closest(".pill");if(!p)return;F.type=p.dataset.type;sf.querySelectorAll(".pill").forEach(x=>x.setAttribute("aria-pressed",String(x===p)));load()});
 app.addEventListener("click",e=>{if(e.target.closest('[data-goto="retry"]')){document.querySelector("#cl").innerHTML=skeleton(3);load();return}

@@ -69,3 +69,8 @@ test("customer panel: resumes a booking after sign-up via ?book= and keeps the d
  assert.ok(p.q("#dlg").textContent.includes("Aarav"));assert.equal(p.q('#bf [name="date"]').value,"2026-11-02");assert.equal(p.q('#bf [name="type"]').value,"Birthday");
  p.q('#bf [name="address"]').value="Flat 402, Lotus Residency, Madhapur";p.q("#bf").dispatchEvent(new p.win.Event("submit",{bubbles:true,cancelable:true}));await p.until(()=>p.qa("#bl article").length===1);assert.equal(p.q("#tab-bookings").getAttribute("aria-selected"),"true");
  const bad=await e.open("customer.html",{sid:await e.as("carl@t.test"),search:"?book=zzz~9"});assert.equal(bad.err,null);assert.equal(bad.q("#dlg[open]"),null);await e.close()});
+test("customer page after sign-up (?near=1): asks for location, shows creators with a package dropdown and Book now",async()=>{const e=await env();
+ const c=await e.open("customer.html",{sid:await e.as("cathy@t.test"),search:"?near=1"});await c.until(()=>c.qa("#cl .cc").length>0);
+ assert.match(c.q("#nearmsg").textContent,/Location is not available|Finding|Showing|could not/);
+ assert.ok(c.q("#cl .cc [data-pksel]"));assert.equal(c.q('#cl .cc [data-act="book"]').textContent,"Book now");
+ c.click(c.q('#cl .cc [data-act="book"]'));await c.until(()=>c.q("#dlg[open]"));assert.ok(c.q("#dlg #pks"),"package dropdown in the booking dialog");await e.close()});

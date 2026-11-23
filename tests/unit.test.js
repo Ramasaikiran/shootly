@@ -86,3 +86,6 @@ test("locations: new cities, phone and shoot address rules",()=>{const w=makeWor
  assert.equal(normPhone("+91 98765 43210"),"9876543210");assert.equal(normPhone("12345"),"");
  throwsS(()=>s.register({name:"Nophone",email:"np@y.co",password:PW,role:"customer"}),400);
  throwsS(()=>s.register({name:"Wrong",email:"ws@y.co",password:PW,role:"creator",phone:"9876543210",state:"Telangana",area:"Vizag",types:["Family"]}),400)});
+test("nearestArea: picks the closest listed area and reports distance",async()=>{const{nearestArea,AREAS,COORDS}=await import("../public/policy.js");
+ assert.deepEqual(Object.keys(COORDS).sort(),[...AREAS].sort());
+ assert.equal(nearestArea(17.4486,78.3910).area,"Madhapur");assert.equal(nearestArea(17.69,83.22).area,"Vizag");assert.ok(nearestArea(28.61,77.21).km>1000)});

@@ -191,4 +191,4 @@ html{-webkit-text-size-adjust:100%}a,button,select,input,summary{touch-action:ma
 .cta{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0 0}.cta .btn{justify-content:center;text-align:center}
 @media (max-width:640px){.cta .btn{flex:1 1 100%}footer,.foot{padding-bottom:84px}}
 
-.pkgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin:0 0 12px}.pk{display:flex;flex-direction:column;gap:10px}.pk h3{margin:0}.pk .pr{margin:0;font-size:32px;font-weight:600;line-height:1.1}.pk .pr.sm{font-size:22px}.pk .pr small{font-size:15px;font-weight:500;color:var(--mute);margin-left:2px}.pk .mute{margin:0;flex:1}.pk .btn{margin-top:auto;align-self:stretch;text-align:center}.creatorfee{margin-top:24px;max-width:560px}
+.pksel{display:grid;gap:4px;margin-top:6px}.pksel select{width:100%}.pkd{margin:6px 0 10px;font-size:14px}.cc .btn[data-act=book]{width:100%}.nearmsg{margin:0 0 12px}

@@ -1,11 +1,11 @@
-import {get,post,guard,toast,wireActions,todayIST} from "./app.js";import {mountAccount} from "./account.js";import {creatorCard,bookingCard,esc,inr,stateAreaFields,wireStateArea,areaOpts} from "./components.js";import {tabsUI,stat,skeleton,empty,section,groupCustomer} from "./panel.js";import {AREAS,TYPES} from "./policy.js";import {openBooking} from "./booking.js";
+import {get,post,guard,toast,wireActions,todayIST} from "./app.js";import {mountAccount} from "./account.js";import {creatorCard,wirePackageSelect,bookingCard,esc,inr,stateAreaFields,wireStateArea,areaOpts} from "./components.js";import {tabsUI,stat,skeleton,empty,section,groupCustomer} from "./panel.js";import {AREAS,TYPES,stateOf,nearestArea} from "./policy.js";import {openBooking} from "./booking.js";
 const me=await guard("customer");if(!me)throw new Error("redirecting");
 const app=document.querySelector("#app"),dlg=document.querySelector("#dlg"),opt=(l,v)=>l.map(a=>`<option ${a===v?"selected":""}>${esc(a)}</option>`).join("");
 const F={type:"",area:"",date:"",budget:"",state:""},QP=new URLSearchParams(location.search);{const t=QP.get("type"),d=QP.get("date");if(TYPES.includes(t))F.type=t;if(/^\d{4}-\d{2}-\d{2}$/.test(d||""))F.date=d}
 app.innerHTML=`<div class="phead"><div><h1 class="h1">Hi ${esc(me.user.name.split(" ")[0])}</h1><p class="mute">Find a creator, then track every booking here.</p></div></div><div id="tabs"></div>
 <section role="tabpanel" id="pn-find" aria-labelledby="tab-find"><form class="fbar" id="sf"><div class="pills" role="group" aria-label="Shoot type"><button type="button" class="pill" data-type="" aria-pressed="${!F.type}">All shoots</button>${TYPES.map(t=>`<button type="button" class="pill" data-type="${esc(t)}" aria-pressed="${F.type===t}">${esc(t)}</button>`).join("")}</div>
-<div class="row2">${stateAreaFields({any:true,country:false})}<label>Shoot date<input type="date" name="date" min="${todayIST()}"></label><label>Max budget (₹)<input type="number" name="budget" min="0" step="500" placeholder="No limit"></label></div></form>
-<p class="mute" id="count" aria-live="polite"></p><div class="grid" id="cl">${skeleton(3)}</div></section>
+<div class="row2">${stateAreaFields({any:true,country:false})}<label>Shoot date<input type="date" name="date" min="${todayIST()}"></label><label>Max budget (₹)<input type="number" name="budget" min="0" step="500" placeholder="No limit"></label></div><button type="button" class="btn alt sm" id="nearme">Use my location</button></form>
+<p class="mute nearmsg" id="nearmsg" aria-live="polite"></p><p class="mute" id="count" aria-live="polite"></p><div class="grid" id="cl">${skeleton(3)}</div></section>
 <section role="tabpanel" id="pn-bookings" aria-labelledby="tab-bookings" hidden><div id="bl">${skeleton(2)}</div></section>
 <section role="tabpanel" id="pn-payments" aria-labelledby="tab-payments" hidden><div id="pl">${skeleton(2)}</div></section>
 <section role="tabpanel" id="pn-account" aria-labelledby="tab-account" hidden><div id="ac"></div></section>`;
@@ -28,6 +28,18 @@ wireStateArea(sf);sf.addEventListener("submit",e=>e.preventDefault());
 sf.addEventListener("change",()=>{F.state=sf.elements.state.value;F.area=sf.elements.area.value;F.date=sf.elements.date.value;F.budget=sf.elements.budget.value;loadCreators()});
 sf.addEventListener("click",e=>{const p=e.target.closest(".pill");if(!p)return;F.type=p.dataset.type;sf.querySelectorAll(".pill").forEach(x=>x.setAttribute("aria-pressed",String(x===p)));loadCreators()});
 app.addEventListener("click",e=>{const g=e.target.closest("[data-goto]");if(!g)return;if(g.dataset.goto==="clear"){Object.assign(F,{type:"",area:"",date:"",budget:"",state:""});sf.reset();sf.elements.area.innerHTML=areaOpts("","",true);sf.querySelectorAll(".pill").forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.type==="")));loadCreators()}else tabs.select(g.dataset.goto)});
-wireActions(app,reload);
+wireActions(app,reload);wirePackageSelect(document.querySelector("#cl"));
 document.querySelector("#cl").addEventListener("click",async e=>{const t=e.target.closest('[data-act="book"]');if(!t)return;const{creators}=await get("/api/creators"),c=creators.find(x=>x.id===t.dataset.c);if(c)openBooking(dlg,c,+t.dataset.p,{date:F.date,type:F.type,phone:me.user.phone||"",area:F.area,onDone:async()=>{await loadBookings();tabs.select("bookings")}})});
+
+// Show photographers closest to the visitor. Their location is used in the browser only, to pick the nearest listed area.
+const nm=document.querySelector("#nearmsg");
+function useNearMe(){if(!navigator.geolocation){nm.textContent="Location is not available on this device. Choose your area to see photographers near you.";return}
+ nm.textContent="Finding photographers near you…";
+ navigator.geolocation.getCurrentPosition(g=>{const n=nearestArea(g.coords.latitude,g.coords.longitude);
+  if(!n||n.km>150){nm.textContent="We are not in your area yet. Showing every creator. Choose a city to filter.";return}
+  F.state=stateOf(n.area);sf.elements.state.value=F.state;sf.elements.state.dispatchEvent(new Event("change",{bubbles:true}));sf.elements.area.value=n.area;F.area=n.area;
+  nm.textContent=`Showing photographers near ${n.area}. Change the area any time.`;loadCreators()},
+ ()=>{nm.textContent="We could not get your location. Choose your area to see photographers near you."},{timeout:10000,maximumAge:300000})}
+document.querySelector("#nearme").addEventListener("click",useNearMe);
+if(QP.get("near")==="1")useNearMe();
 await reload();{const bk=(QP.get("book")||"").split("~");if(bk.length===2){const{creators}=await get("/api/creators"),c=creators.find(x=>x.id===bk[0]);if(c&&c.pk[+bk[1]])openBooking(dlg,c,+bk[1],{date:F.date,type:F.type,phone:me.user.phone||"",area:F.area,onDone:async()=>{await loadBookings();tabs.select("bookings")}})}}setInterval(()=>{if(!dlg.open&&!app.contains(document.activeElement))loadBookings().catch(()=>{})},20000);

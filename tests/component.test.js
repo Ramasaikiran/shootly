@@ -73,3 +73,9 @@ test("grouping and earnings",()=>{const b=(s,o={})=>mk({status:s,...o}),sent={se
  assert.deepEqual([g.attention.length,g.upcoming.length,g.past.length],[3,3,2]);
  const h=P.groupCreator([b("Requested"),b("Accepted"),b("Confirmed"),b("In progress"),b("Completed",{delivery:nos}),b("Completed",{delivery:sent}),b("Declined")]);assert.deepEqual([h.requests.length,h.upcoming.length,h.deliver.length,h.history.length],[1,3,1,2]);
  assert.equal(P.earnings([b("Completed",{delivery:sent,payout:2200}),b("Completed",{delivery:nos,payout:9000}),b("Confirmed",{payout:5000})]),2200)});
+test("creatorCard: package dropdown shows prices and the Book now button follows the choice",()=>{
+ const c={id:"c1",name:"Aarav",area:"Madhapur",exp:"6 yrs",types:["Birthday"],pk:[{n:"Mini",h:1,d:"25 photos",days:3,p:1499},{n:"Half Day",h:3,d:"80 photos",days:5,p:3999}]};
+ const host=window.document.createElement("div");host.innerHTML=C.creatorCard(c);window.document.body.append(host);C.wirePackageSelect(host);
+ const sel=host.querySelector("[data-pksel]"),btn=host.querySelector('[data-act="book"]');
+ assert.deepEqual([...sel.options].map(o=>o.textContent),["Mini · ₹1,499","Half Day · ₹3,999"]);assert.equal(btn.textContent,"Book now");assert.equal(btn.dataset.p,"0");
+ sel.value="1";sel.dispatchEvent(new window.Event("change",{bubbles:true}));assert.equal(btn.dataset.p,"1");assert.ok(host.querySelector("[data-pkd]").textContent.includes("80 photos"));host.remove()});
