@@ -26,7 +26,8 @@ FAQ=[("How do I book a photographer on Shootly?","Pick a shoot type and area, co
 ("Can I cancel a booking?","Yes, while it is Requested, Accepted or Confirmed. Cancel before the creator accepts and nothing is charged. Cancel after paying and before the shoot starts for a full refund."),
 ("Do I need to confirm my email before booking?","You can send a request right after you sign up. You confirm your email before you pay, so we can send your receipt and booking updates."),
 ("How are creators verified?","Creators submit ID and portfolio, and are reviewed manually before they are listed. Verification confirms identity, not artistic quality."),
-("How do I pay, and is it safe?","Payments go through Razorpay. We never see or store your card or UPI details. You pay only after the creator accepts.")]
+("How do I pay, and is it safe?","Payments go through Razorpay. We never see or store your card or UPI details. You pay only after the creator accepts."),
+("How fast do I get my reel?","Event reels are shot, cut and delivered within 10 minutes of the shoot, so you can post them before the event ends.")]
 def head(title,desc,path,index=True,ld="",city=None):
     assert not index or (len(title)<=70 and 50<len(desc)<=170),(title,len(title),len(desc))
     geo=(f'<meta name="geo.region" content="{"IN-TG" if city["state"]=="Telangana" else "IN-AP"}"><meta name="geo.placename" content="{city["name"]}"><meta name="geo.position" content="{city["lat"]};{city["lng"]}"><meta name="ICBM" content="{city["lat"]}, {city["lng"]}">' if city else '<meta name="geo.country" content="IN">')+'<meta property="og:site_name" content="Shootly">'
@@ -36,14 +37,30 @@ def head(title,desc,path,index=True,ld="",city=None):
 {geo}<meta property="og:type" content="website"><meta property="og:title" content="{title}"><meta property="og:description" content="{desc}"><meta property="og:url" content="{SITE}{path}"><meta property="og:locale" content="en_IN"><meta name="twitter:card" content="summary"><meta name="theme-color" content="#2442E8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%232442E8'/><circle cx='16' cy='16' r='7' fill='none' stroke='white' stroke-width='3'/></svg>">
 {FONTS}{ld}</head><body><a class="skip" href="#main">Skip to content</a>'''
-HEADER='''<header class="top"><div class="wrap bar"><a class="logo" href="index.html">Shootly</a><nav class="links" aria-label="Main"><a class="l" href="index.html#cities">Cities</a><a class="l" href="auth.html?mode=register">For photographers</a><a class="l" href="index.html#how">How it works</a><a class="l" href="index.html#faq">FAQ</a><a class="l" href="auth.html">Sign in</a><a class="btn sm" href="auth.html?mode=register&next=customer.html%3Fnear%3D1" data-cta="header-book">Book now</a></nav></div></header>'''
+HEADER='''<header class="top"><div class="wrap bar"><a class="logo" href="index.html">Shootly</a><nav class="links" aria-label="Main"><a class="l" href="index.html#pricing">Pricing</a><a class="l" href="index.html#cities">Cities</a><a class="l" href="auth.html?mode=register">For photographers</a><a class="l" href="index.html#how">How it works</a><a class="l" href="index.html#faq">FAQ</a><a class="l" href="auth.html">Sign in</a><a class="btn sm" href="auth.html?mode=register&next=customer.html%3Fnear%3D1" data-cta="header-book">Book now</a></nav></div></header>'''
 FOOTER=f'''<footer class="foot"><div class="wrap fgrid"><div><a class="logo" href="index.html">Shootly</a><p>Verified photographers and videographers in Hyderabad, Vizag, Vijayawada, Guntur, Kurnool, Karimnagar and Khammam.</p><p>Payments processed by Razorpay.</p></div>
-<nav aria-label="Product"><h2>Product</h2><a href="browse.html">Find a photographer</a><a href="index.html#how">How it works</a><a href="index.html#faq">FAQ</a></nav>
+<nav aria-label="Product"><h2>Product</h2><a href="browse.html">Find a photographer</a><a href="index.html#pricing">Pricing</a><a href="index.html#how">How it works</a><a href="index.html#faq">FAQ</a></nav>
 <nav aria-label="Cities"><h2>Cities</h2>{"".join(f'<a href="{cpage(c)}">{c["name"]}</a>' for c in CITIES)}</nav>
 <nav aria-label="Creators"><h2>Creators</h2><a href="auth.html?mode=register">Join as a creator</a><a href="auth.html">Creator sign in</a></nav>
 <nav aria-label="Legal"><h2>Legal</h2><a href="terms.html">Terms and Conditions</a><a href="privacy.html">Privacy Policy</a><a href="refunds.html">Refund and Cancellation Policy</a><a href="contact.html">Contact and grievance</a></nav></div>
 <div class="wrap fbase"><span>© 2026 Shootly. All rights reserved.</span><span><a href="contact.html">Support and grievance</a></span></div></footer>'''
 CATS=[("Birthday","Parties, cake moments, candid fun"),("Family","Portraits at home or outdoors"),("Graduation","Convocation and campus shoots"),("Reel","Short videos for Instagram"),("Product","Clean photos for your store"),("Restaurant","Food, menu and venue content")]
+PRICING=[("Hourly","₹1,499","/hr",0,"A quick reel from a 1 hour shoot."),
+("Half Day","₹3,999","up to 4 hrs",1,"Birthdays, small ceremonies, short events."),
+("Wedding Basic","₹14,999","1 day",0,"One day, one creator, an edited reel."),
+("Wedding Silver","₹44,999","2 days",0,"Two days of coverage, multiple reels."),
+("Wedding Gold","₹59,999","3 days",0,"Three days, multiple creators."),
+("Wedding Platinum","₹99,999","4 days",0,"Four days, premium coverage."),
+("Wedding Luxe","₹1,99,999","full wedding",0,"Every event covered, top creators."),
+("Business","Customised","on request",0,"Launches, brand shoots, corporate events.")]
+FEATURES=[("01","Verified creators","Every creator is ID-verified, background-checked and tracked live from arrival to delivery."),
+("02","Reels in 10 minutes","Shot, cut and delivered before your event wraps. Share it while the moment is still happening."),
+("03","Live tracking","Track your creator's arrival and shoot status in the app, start to finish."),
+("04","Instant booking","Get confirmation the moment you book. No back and forth."),
+("05","All-in pricing","The price you see is the price you pay. No hidden charges."),
+("06","Trained creators","Every creator is trained for fast turnarounds without cutting quality."),
+("07","Shoot to share","Edited reels land in your hands ready to post, no extra editing needed."),
+("08","Customer support","Support is available on every booking, start to finish.")]
 def sv(d):return f'<svg class="ti" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{d}</svg>'
 TRUST=[(sv('<path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"/><path d="m9 12 2 2 4-4"/>'),"ID-verified creators","Reviewed by our team before they are listed."),
 (sv('<path d="M4 12V4h8l8 8-8 8z"/><circle cx="8.5" cy="8.5" r="1.2"/>'),"All-in prices","The price you see is the price you pay."),
@@ -69,6 +86,16 @@ def finder():
     areas='<option value="">Any area</option>'+"".join(f'<option data-s="{s}">{a}</option>' for s,l in LOC.items() for a in l)
     states='<option value="">Any state</option>'+"".join(f'<option>{s}</option>' for s in LOC)
     return f'<form class="finder card" action="browse.html" method="get" aria-labelledby="fh"><h2 id="fh">What are you shooting?</h2><fieldset class="rpills"><legend class="sr">Shoot type</legend>{pills}</fieldset><div class="frow"><label>State<select name="state">{states}</select></label><label>Area<select name="area">{areas}</select></label></div><label>Shoot date (optional)<input type="date" name="date" id="fdate"></label><button class="btn lg block" type="submit" data-cta="hero-search">Find my photographer</button><p class="micro">Free to request. Pay only after the creator accepts.</p></form>'
+def pricing():
+    def card(name,price,unit,pop,d):
+        cls="price-card pop" if pop else "price-card"
+        tag='<span class="tag ok">Most booked</span>' if pop else ''
+        return f'<div class="{cls}">{tag}<b>{name}</b><p class="pr">{price}<span>{unit}</span></p><span class="mute">{d}</span></div>'
+    cards="".join(card(*p) for p in PRICING)
+    return f'<section class="sect" id="pricing" aria-labelledby="h-pricing"><p class="eyebrow">Pricing</p><h2 id="h-pricing">Event reels, delivered in 10 minutes</h2><p class="lede">Birthdays, weddings and ceremonies — shot, edited and delivered before the moment passes.</p><div class="pricing-grid">{cards}</div><p class="micro">Prices are all-in. Final package is set with the creator before you pay.</p></section>'
+def features():
+    items="".join(f'<div class="feat"><b>{n}</b><h3>{t}</h3><p class="mute">{d}</p></div>' for n,t,d in FEATURES)
+    return f'<section class="sect" id="features" aria-labelledby="h-features"><p class="eyebrow">Features</p><h2 id="h-features">Everything you need, inside one app.</h2><div class="feat-grid">{items}</div></section>'
 def home():
     faq="".join(f'<details class="q"><summary>{q}</summary><p>{a}</p></details>' for q,a in FAQ)
     cats="".join(f'<a class="cat" href="browse.html?type={n}" data-cta="category-{n.lower()}"><b>{n}</b><span>{d}</span></a>' for n,d in CATS)
@@ -84,6 +111,8 @@ def home():
 <section class="sect" id="how" aria-labelledby="h-how"><p class="eyebrow">How it works</p><h2 id="h-how">Three steps. Nothing hidden.</h2>
 <ol class="steps"><li><h3>Search and compare</h3><p class="mute">Choose shoot type, area and date. See packages, prices and delivery times. No account needed.</p></li><li><h3>Send a request</h3><p class="mute">Create a free account to send it. You can send it right away. The creator accepts or declines. You are not charged yet.</p></li><li><h3>Pay to confirm</h3><p class="mute">Pay when accepted. Your slot is locked. Get your files by the deadline on your booking.</p></li></ol></section>
 <section class="sect" id="shoots" aria-labelledby="h-shoots"><p class="eyebrow">What we cover</p><h2 id="h-shoots">Pick your kind of shoot</h2><div class="cats">{cats}</div></section>
+{features()}
+{pricing()}
 {proof()}
 <section class="sect" id="faq" aria-labelledby="h-f"><p class="eyebrow">FAQ</p><h2 id="h-f">Questions people ask</h2>{faq}</section>
 <section class="sect" style="text-align:center"><h2>Ready for your shoot?</h2><p class="lede" style="margin-inline:auto">Create a free account, see photographers near you and send a request. You pay only after they accept.</p><a class="btn lg" href="auth.html?mode=register&next=customer.html%3Fnear%3D1" data-cta="final-book">Book now</a></section>
@@ -92,9 +121,13 @@ def home():
 def cityld(c):return {"@type":"City","name":c["name"],"containedInPlace":{"@type":"AdministrativeArea","name":c["state"],"containedInPlace":{"@type":"Country","name":"India"}},"geo":{"@type":"GeoCoordinates","latitude":c["lat"],"longitude":c["lng"]}}
 def ldjson(g):return '<script type="application/ld+json">'+json.dumps({"@context":"https://schema.org","@graph":g},ensure_ascii=False)+"</script>"
 def faqld(faq):return {"@type":"FAQPage","mainEntity":[{"@type":"Question","name":q,"acceptedAnswer":{"@type":"Answer","text":a}} for q,a in faq]}
+def offerld():
+    def price(p):return re.sub(r"[₹,]","",p) if re.match(r"^[₹\d]",p) else None
+    items=[{"@type":"Offer","name":n,"price":price(pr),"priceCurrency":"INR"} if price(pr) else {"@type":"Offer","name":n,"description":"Customised pricing on request"} for n,pr,u,pop,d in PRICING]
+    return {"@type":"OfferCatalog","name":"Event reel packages","itemListElement":items}
 def ld():
     g=[{"@type":"Organization","@id":SITE+"#org","name":"Shootly","url":SITE,"description":"Marketplace to book ID-verified photographers and videographers in "+CITYNAMES+", India.","areaServed":[cityld(c) for c in CITIES]},{"@type":"WebSite","url":SITE,"name":"Shootly","inLanguage":"en-IN"},
-    {"@type":"Service","serviceType":"Photography and videography booking marketplace","provider":{"@id":SITE+"#org"},"areaServed":[cityld(c) for c in CITIES]},
+    {"@type":"Service","serviceType":"Photography and videography booking marketplace, with event reels delivered in 10 minutes","provider":{"@id":SITE+"#org"},"areaServed":[cityld(c) for c in CITIES],"hasOfferCatalog":offerld()},
     faqld(FAQ)]
     return ldjson(g)
 STICKY='<style>.sticky{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--card);border-top:1px solid var(--line);padding:10px 18px calc(10px + env(safe-area-inset-bottom,0px));display:none;transform:translateY(110%);transition:transform .25s}.sticky.on{transform:none}@media (max-width:640px){.sticky{display:block}.sticky .btn{width:100%}.foot{margin-bottom:70px}}.three{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}.cta{display:flex;gap:12px;flex-wrap:wrap}.micro{font-size:14px;color:var(--mute);margin:10px 0 0}</style>'
@@ -158,7 +191,7 @@ def legal_main(k):
     return f'<main id="main" class="wrap legal"><p class="crumb"><a href="index.html">Home</a> / {t}</p><h1>{t}</h1><p class="mute">Last updated: {UPD}</p>{toc}{body}</main>',t,d
 import os
 os.chdir('public')
-open('index.html','w').write(head("Book a Verified Photographer in Hyderabad, Vizag & More | Shootly","Book ID-verified photographers and videographers in Hyderabad, Vizag, Vijayawada and 4 more cities. See the all-in price first. Pay after they accept.","",True,ld()+STICKY)+HEADER+home()+FOOTER+"</body></html>")
+open('index.html','w').write(head("Book a Verified Photographer in Hyderabad, Vizag & More | Shootly","ID-verified photographers and videographers in Hyderabad, Vizag, Vijayawada and 4 more cities. Event reels delivered in 10 minutes.","",True,ld()+STICKY)+HEADER+home()+FOOTER+"</body></html>")
 for k in LEGAL:
     m,t,d=legal_main(k)
     open(f'{k}.html','w').write("<!-- Draft. Have a lawyer review before launch. Replace every highlighted [placeholder]. -->\n"+head(f"{t} | Shootly",d,f"{k}.html")+HEADER+m+FOOTER+"</body></html>")

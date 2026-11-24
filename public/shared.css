@@ -91,6 +91,17 @@ mark.fill{background:#FFE58A;color:#3a2b00;padding:0 4px;border-radius:3px}
 .split{display:grid;grid-template-columns:1fr 1fr;gap:20px}@media (max-width:760px){.split{grid-template-columns:1fr}}
 .bill{width:100%}.bill td{padding:10px 0}.bill td:last-child{text-align:right;font-weight:600}.bill tr.t td{border-top:2px solid var(--ink);border-bottom:0}
 .band2{background:var(--ink);color:var(--bg);border-radius:20px;padding:36px 28px;margin:56px 0 0;display:grid;gap:12px}.band2 h2{margin:0}.band2 p{color:inherit;opacity:.8;margin:0;max-width:52ch}.band2 .btn{background:var(--ac);color:#0F1319;justify-self:start}
+.pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.price-card{position:relative;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:6px}
+.price-card.pop{border-color:var(--ac);box-shadow:0 8px 24px rgba(16,24,38,.08)}
+.price-card .tag{position:absolute;top:-11px;right:14px}
+.price-card b{font:400 19px var(--fd)}
+.price-card .pr{margin:0;font:400 26px var(--fd);color:var(--act)}
+.price-card .pr span{font:400 13px var(--fb);color:var(--mute);margin-left:4px}
+.feat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:24px 20px}
+.feat{border-top:1px solid var(--line);padding-top:14px}
+.feat b{display:block;font:400 34px var(--fd);color:var(--line);margin-bottom:8px}
+.feat h3{margin:0 0 6px;font-size:16px}
 details.q{border-bottom:1px solid var(--line);padding:14px 0}details.q summary{font-weight:600;cursor:pointer;min-height:32px}details.q p{margin:8px 0 0;max-width:68ch;color:var(--mute)}
 .foot{background:var(--card);border-top:1px solid var(--line);margin-top:64px;padding:44px 0 0;color:var(--mute);font-size:14.5px}
 .fgrid{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1.2fr;gap:28px}@media (max-width:760px){.fgrid{grid-template-columns:1fr 1fr}}
