@@ -55,6 +55,12 @@ def proof():
     if not PROOF:return ''
     cards="".join(f'<figure class="card proof"><blockquote>“{_h.escape(q["quote"])}”</blockquote><figcaption>{_h.escape(q["name"])} · {_h.escape(q["shoot"])}</figcaption></figure>' for q in PROOF)
     return f'<section class="sect" aria-labelledby="h-proof"><p class="eyebrow">Customers</p><h2 id="h-proof">What customers say</h2><div class="three">{cards}</div></section>'
+def livebar():
+    def item(c,dup):
+        a=f'<a href="{cpage(c)}" data-cta="where-{c["slug"]}"'+(' tabindex="-1"' if dup else '')+f' title="Photographers in {c["name"]}">{c["name"]}</a>'
+        return '<li'+(' aria-hidden="true"' if dup else '')+'>'+a+'</li>'
+    one="".join(item(c,False) for c in CITIES);two="".join(item(c,True) for c in CITIES)
+    return f'<section class="live" id="cities" aria-labelledby="live-h"><p class="live-h" id="live-h">We are live across</p><div class="mq"><ul class="mq-track">{one}{two}</ul></div></section>'
 def wherecard():
     rows="".join(f'<li style="--i:{i}"><a href="{cpage(c)}" data-cta="where-{c["slug"]}"><span class="dot" aria-hidden="true"></span><b>{c["name"]}</b><span class="st">{c["state"]}</span></a></li>' for i,c in enumerate(CITIES))
     return f'<aside class="card wc" id="cities" aria-labelledby="wch"><h2 id="wch">Find us in</h2><ul>{rows}</ul><p class="mute">Tap a city to see photographers there.</p></aside>'
@@ -68,10 +74,11 @@ def home():
     cats="".join(f'<a class="cat" href="browse.html?type={n}" data-cta="category-{n.lower()}"><b>{n}</b><span>{d}</span></a>' for n,d in CATS)
     trust="".join(f'<li>{i}<div><b>{t}</b><span>{d}</span></div></li>' for i,t,d in TRUST)
     return f'''<main id="main" class="wrap">
-<section class="hero2"><div class="hcopy"><h1>Book a verified photographer. <em>Pay only when they accept.</em></h1><p class="lead">ID-checked photographers and videographers near you. See the all-in price and delivery date first.</p>
+<section class="hero2 solo"><div class="hcopy"><h1>Book a verified photographer. <em>Pay only when they accept.</em></h1><p class="lead">ID-checked photographers and videographers near you. See the all-in price and delivery date first.</p>
 <ul class="ticks"><li>ID-verified creators</li><li>All-in prices</li><li>Pay after they accept</li></ul>
 <p class="cta"><a class="btn lg" href="auth.html?mode=register&next=customer.html%3Fnear%3D1" data-cta="hero-book">Book now</a><a class="btn alt" href="browse.html" data-cta="hero-browse">Browse creators</a></p><p class="micro">Free to request. Pay only after the creator accepts.<span id="fromline" hidden></span></p>
-</div>{wherecard()}</section>
+</div></section>
+{livebar()}
 <section class="trust" aria-label="Why book with us"><ul>{trust}</ul></section>
 <section class="sect" id="proof" aria-labelledby="h-proof" hidden><p class="eyebrow">Real work, real creators</p><h2 id="h-proof">Recent work from verified creators</h2><p class="mute" id="proofsub"></p><div class="proofgrid" id="proofgrid"></div><p><a class="btn alt" href="browse.html" data-cta="proof-browse">See all creators</a></p></section>
 <section class="sect" id="how" aria-labelledby="h-how"><p class="eyebrow">How it works</p><h2 id="h-how">Three steps. Nothing hidden.</h2>
