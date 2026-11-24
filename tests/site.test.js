@@ -24,3 +24,6 @@ test("seven city pages: unique title, canonical, geo, FAQ schema matches visible
  assert.equal(titles.size,7)});
 test("robots.txt welcomes AI crawlers, links the sitemap, llms.txt names every city",()=>{const r=read("robots.txt"),l=read("llms.txt");for(const b of["GPTBot","OAI-SearchBot","ChatGPT-User","ClaudeBot","Claude-SearchBot","PerplexityBot","Google-Extended"])assert.match(r,new RegExp("User-agent: "+b+"\\nAllow: /"),b);assert.match(r,/Sitemap: https:\/\/shootly-two\.vercel\.app\/sitemap\.xml/);
  for(const c of["Hyderabad","Vizag","Vijayawada","Guntur","Kurnool","Karimnagar","Khammam"])assert.ok(l.includes(c),c)});
+test("landing CRO: live proof strip is hidden until real data loads, from-price slot, new FAQ answers, tracker loaded",()=>{const h=read("index.html");
+ assert.match(h,/<section class="sect" id="proof"[^>]*hidden/);assert.match(h,/id="fromline" hidden/);
+ assert.ok(h.includes("Can I cancel a booking?")&&h.includes("Do I need to confirm my email before booking?"));assert.match(h,/src="track\.js"/)});

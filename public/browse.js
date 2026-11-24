@@ -1,3 +1,4 @@
+import "./track.js";
 import {get,toast,todayIST} from "./app.js";import {creatorCard,wirePackageSelect,esc,stateAreaFields,wireStateArea,areaOpts} from "./components.js";import {skeleton,empty} from "./panel.js";import {AREAS,TYPES,STATES,stateOf} from "./policy.js";import {openBooking} from "./booking.js";
 const app=document.querySelector("#app"),dlg=document.querySelector("#dlg"),QP=new URLSearchParams(location.search);
 const F={type:TYPES.includes(QP.get("type"))?QP.get("type"):"",area:AREAS.includes(QP.get("area"))?QP.get("area"):"",date:/^\d{4}-\d{2}-\d{2}$/.test(QP.get("date")||"")?QP.get("date"):"",budget:"",state:STATES.includes(QP.get("state"))?QP.get("state"):""};

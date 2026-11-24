@@ -68,7 +68,6 @@ function setCreatorStatus(user,id,ver){needAdmin(user);const c=cr(id);if(!c)thro
 // ---- bookings
 function makeBooking(user,{creatorId,pk,date,slot,type,area,address,landmark,lat,lng,phone}){
  if(user.role!=="customer")throw E(403,"Only customers can book.");
- if(!user.emailVerified)throw E(403,"Verify your email before booking. We sent you a link.");
  const c=cr(creatorId);if(!c||c.ver!=="verified")throw E(404,"Creator not found.");ensureIds(c);
  const p=c.pk[pk];if(!Number.isInteger(pk)||!p)throw E(400,"Pick a package.","pk");
  if(!validDate(date))throw E(400,"Pick a valid date.","date");if(date<today())throw E(400,"Pick a date from today onwards.","date");if(date>addDays(today(),365))throw E(400,"Pick a date within a year.","date");
@@ -121,7 +120,7 @@ async function act(user,id,action,body={}){const b=bk(id);if(!b)throw E(404,"Boo
  default:throw E(400,"Unknown action.")}
  return view(b,user)}
 // ---- payments
-async function createOrder(user,bookingId){const b=bk(bookingId);if(!b||b.customerId!==user.id)throw E(404,"Booking not found.");if(b.status!=="Accepted")throw E(409,"Pay after the creator accepts.");
+async function createOrder(user,bookingId){const b=bk(bookingId);if(!b||b.customerId!==user.id)throw E(404,"Booking not found.");if(!user.emailVerified)throw E(403,"Confirm your email to pay. We sent you a link.");if(b.status!=="Accepted")throw E(409,"Pay after the creator accepts.");
  if(slotTaken(b.creatorId,b.date,b.slot))throw E(409,"That slot was just taken.");
  let p=D.payments.find(x=>x.bookingId===b.id&&x.status==="created");
  if(!p){const o=await gateway.createOrder({amount:b.price*100,receipt:b.id});p={id:store.id("p"),bookingId:b.id,orderId:o.id,amount:b.price*100,paymentId:null,status:"created"};D.payments.push(p)}
@@ -202,6 +201,16 @@ function receipt(user,bookingId){const b=bk(bookingId);if(!b||(user.role==="cust
 function adminUsers(admin){needAdmin(admin);return D.users.map(u=>({id:u.id,name:u.name,email:u.email,role:u.role,emailVerified:!!u.emailVerified,disabled:!!u.disabled,createdAt:u.createdAt,bookings:D.bookings.filter(b=>b.customerId===u.id||(creatorOf(u)&&b.creatorId===creatorOf(u).id)).length})).reverse()}
 function setUserDisabled(admin,id,disabled){needAdmin(admin);const u=D.users.find(x=>x.id===id);if(!u)throw E(404,"User not found.");if(u.role==="admin")throw E(403,"Admin accounts cannot be disabled here.");
  u.disabled=!!disabled;if(disabled){dropSessions(u.id);const c=creatorOf(u);if(c)c.ver="suspended"}audit(admin,disabled?"user.disable":"user.enable",u.id,u.email);return{ok:true}}
+
+// First-party funnel counts. Page views and button clicks only: no cookies, IP addresses or personal data.
+const EVENT=/^(view|cta):[a-z0-9-]{1,40}$/;
+function track(name){if(!EVENT.test(String(name)))return;D.metrics??={};const day=now().toISOString().slice(0,10);
+ if(!D.metrics[day]){D.metrics[day]={};for(const k of Object.keys(D.metrics).sort().slice(0,-90))delete D.metrics[k]}
+ const m=D.metrics[day];if(m[name]===undefined&&Object.keys(m).length>=150)return;m[name]=(m[name]||0)+1}
+function funnel(admin,days=30){needAdmin(admin);days=Math.min(90,Math.max(1,+days||30));const from=new Date(now().getTime()-days*864e5).toISOString().slice(0,10),views={},clicks={};
+ for(const[d,m]of Object.entries(D.metrics||{}))if(d>=from)for(const[k,n]of Object.entries(m)){const t=k.startsWith("view:")?views:clicks;t[k.slice(k.indexOf(":")+1)]=(t[k.slice(k.indexOf(":")+1)]||0)+n}
+ const inWin=x=>String(x||"").slice(0,10)>=from,bs=D.bookings.filter(b=>inWin(b.createdAt));
+ return{days,views,clicks,accounts:D.users.filter(u=>u.role==="customer"&&inWin(u.createdAt)).length,requests:bs.length,accepted:bs.filter(b=>b.log.includes("Accepted")).length,paid:bs.filter(b=>b.log.some(x=>x.startsWith("Confirmed"))).length}}
 function listAudit(admin,{limit=100,action}={}){needAdmin(admin);let l=D.audit;if(action)l=l.filter(a=>a.action.startsWith(String(action)));return l.slice(-Math.min(Math.max(+limit||100,1),500)).reverse()}
 function stats(u){needAdmin(u);const n=s=>D.bookings.filter(b=>b.status===s).length,sum=f=>D.payments.filter(f).reduce((a,p)=>a+p.amount,0)/100;
  const done=D.bookings.filter(b=>b.status==="Completed"&&b.delivery?.sent),rows=D.bookings.filter(b=>payoutState(b));
@@ -211,7 +220,7 @@ function stats(u){needAdmin(u);const n=s=>D.bookings.filter(b=>b.status===s).len
 return{register,recordConsent,createAdmin,login,authenticate,logout,logoutAll,listCreators,getCreator,addPackage,editPackage,deletePackage,setCreatorStatus,makeBooking:(u,b)=>view(makeBooking(u,b),u),listBookings,act,createOrder,verifyPayment,webhook,
  verifyEmail,resendVerification,forgot,resetPassword,resetPasswordFor,updateName,changePassword,
  updateProfile,setBlocked,addPortfolio,removePortfolio,setIdDoc,readIdDoc,setPayout,
- payouts,markPayoutPaid,adminPayments,listPayments,retryRefund,receipt,adminUsers,setUserDisabled,listAudit,stats,uploads:up,
+ payouts,markPayoutPaid,adminPayments,listPayments,retryRefund,receipt,adminUsers,setUserDisabled,listAudit,track,funnel,stats,uploads:up,
  adminCreators:u=>{needAdmin(u);return D.creators.map(c=>({id:c.id,name:c.name,area:c.area,ver:c.ver,packages:c.pk.length,hasId:!!c.idDoc,idAt:c.idDoc?.at||null,emailVerified:!!D.users.find(x=>x.id===c.userId)?.emailVerified,hasPayout:!!c.payout}))},
  myCreator:u=>{const c=creatorOf(u);if(!c)return null;ensureIds(c);return{id:c.id,name:c.name,area:c.area,state:stateOf(c.area),country:"India",ver:c.ver,types:c.types,exp:c.exp,bio:c.bio||"",pk:c.pk,blocked:c.blocked||[],portfolio:portView(c),hasId:!!c.idDoc,idAt:c.idDoc?.at||null,idKind:c.idDoc?.ext||null,payout:c.payout?{holder:c.payout.holder,kind:c.payout.kind,mask:c.payout.mask}:null}},
  _today:today}}

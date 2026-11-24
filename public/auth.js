@@ -1,3 +1,4 @@
+import "./track.js";
 import {mountAuth} from "./components.js";import {post,home,safeNext} from "./app.js";
 const p=new URLSearchParams(location.search);
 {const c=document.querySelector("#ctx");if(c&&/book=|near=/.test(p.get("next")||"")){c.hidden=false}}

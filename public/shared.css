@@ -192,3 +192,4 @@ html{-webkit-text-size-adjust:100%}a,button,select,input,summary{touch-action:ma
 @media (max-width:640px){.cta .btn{flex:1 1 100%}footer,.foot{padding-bottom:84px}}
 
 .pksel{display:grid;gap:4px;margin-top:6px}.pksel select{width:100%}.pkd{margin:6px 0 10px;font-size:14px}.cc .btn[data-act=book]{width:100%}.nearmsg{margin:0 0 12px}
+.proofgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin:0 0 16px}.proof{display:grid;gap:6px;padding:10px;text-decoration:none;color:inherit}.proof img{width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;border-radius:10px;display:block}#fromline{font-weight:600}.fun td,.fun th{text-align:left}

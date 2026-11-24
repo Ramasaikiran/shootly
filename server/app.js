@@ -4,7 +4,8 @@ const MIME={".html":"text/html; charset=utf-8",".js":"text/javascript; charset=u
 const CSP="default-src 'self'; script-src 'self' https://checkout.razorpay.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://lumberjack.razorpay.com; frame-src https://api.razorpay.com https://checkout.razorpay.com; frame-ancestors 'none'; base-uri 'none'; form-action 'self'";
 export function createApp({service,store,gateway,publicDir,config={}}){
 const now=config.now||Date.now,L=(w,m)=>createLimiter({windowMs:w,max:m,now});
-const lim={global:L(6e4,config.globalMax??300),loginIp:L(6e5,config.loginIpMax??20),loginFail:L(9e5,config.loginFailMax??5),register:L(36e5,config.registerMax??5),pay:L(6e4,config.payMax??10),write:L(6e4,config.writeMax??60),mailIp:L(36e5,config.mailIpMax??8),mailKey:L(36e5,config.mailKeyMax??3),pw:L(9e5,config.pwMax??8)};
+const lim={track:L(6e4,config.trackMax??120),global:L(6e4,config.globalMax??300),loginIp:L(6e5,config.loginIpMax??20),loginFail:L(9e5,config.loginFailMax??5),register:L(36e5,config.registerMax??5),pay:L(6e4,config.payMax??10),write:L(6e4,config.writeMax??60),mailIp:L(36e5,config.mailIpMax??8),mailKey:L(36e5,config.mailKeyMax??3),pw:L(9e5,config.pwMax??8)};
+let saveT=null;const lazySave=()=>{if(saveT)return;saveT=setTimeout(async()=>{saveT=null;try{await store.save()}catch(e){console.error(e)}},3e4);saveT.unref?.()};
 const sweeper=setInterval(()=>Object.values(lim).forEach(l=>l.sweep()),6e4);sweeper.unref?.();
 const secure=!!config.secure,ip=r=>config.trustProxy?String(r.headers["x-forwarded-for"]||"").split(",")[0].trim()||r.socket.remoteAddress:r.socket.remoteAddress;
 const cookie=(t,max)=>`sid=${t}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${max}${secure?"; Secure":""}`;
@@ -16,6 +17,7 @@ const mailKey=e=>String(e||"").trim().toLowerCase().slice(0,254);
 const A=c=>R(c,"admin"),CR=c=>R(c,"creator"),meOut=c=>({user:service.authenticate(c.token),creator:c.user.role==="creator"?service.myCreator(c.user):null});
 const routes=[
 ["GET","/api/health",()=>({ok:true})],
+["POST","/api/track",c=>{gate(lim.track,c.ip);service.track(c.body?.e);return{ok:true}},{lazy:true}],
 ["POST","/api/auth/register",async c=>{gate(lim.register,c.ip);if(c.body.agree!==true)throw E(400,"Please accept the Terms and Privacy Policy.","agree");const u=service.register(c.body);service.recordConsent(u.id);const s=service.login({email:c.body.email,password:c.body.password});c.cookie=cookie(s.token,604800);return{user:u}}],
 ["POST","/api/auth/login",async c=>{gate(lim.loginIp,c.ip);const email=String(c.body.email||"").trim().toLowerCase().slice(0,254),k=c.ip+"|"+email,b=lim.loginFail.blocked(k);
  if(!b.ok){const e=E(429,"Too many wrong attempts. Try again in "+Math.ceil(b.retryAfter/60)+" min.");e.retryAfter=b.retryAfter;throw e}
@@ -59,6 +61,7 @@ const routes=[
 ["POST",/^\/api\/admin\/payouts\/(\w+)\/paid$/,c=>{gate(lim.write,A(c).id);return service.markPayoutPaid(c.user,c.m[1],c.body.ref)}],
 ["GET","/api/admin/users",c=>({users:service.adminUsers(A(c))})],
 ["POST",/^\/api\/admin\/users\/(\w+)\/(disable|enable)$/,c=>{gate(lim.write,A(c).id);return service.setUserDisabled(c.user,c.m[1],c.m[2]==="disable")}],
+["GET","/api/admin/funnel",c=>service.funnel(A(c),c.q.days)],
 ["GET","/api/admin/audit",c=>({audit:service.listAudit(A(c),{limit:c.q.limit,action:c.q.action})})]];
 const send=(res,s,o,h={})=>{const b=JSON.stringify(o);res.writeHead(s,{"Content-Type":"application/json; charset=utf-8","Cache-Control":"no-store",...h});res.end(b)};
 const readBody=(r,max)=>new Promise((ok,no)=>{let n=0;const a=[];r.on("data",d=>{n+=d.length;if(n>max){no(E(413,"Request too large."));r.destroy()}else a.push(d)});r.on("end",()=>ok(Buffer.concat(a).toString("utf8")));r.on("error",no)});
@@ -87,7 +90,7 @@ return async function handler(req,res){
   if(post&&!raw&&text){try{body=JSON.parse(text);if(!body||typeof body!=="object"||Array.isArray(body))throw 0}catch{throw E(400,"Invalid JSON.")}}
   const token=(String(req.headers.cookie||"").match(/(?:^|;\s*)sid=([\w-]+)/)||[])[1];
   const ctx={req,res,ip:a,body,raw:text,token,user:service.authenticate(token),q:Object.fromEntries(url.searchParams),m,cookie:null};
-  const out=await route[2](ctx);if(post)await store.save();
+  const out=await route[2](ctx);if(post){if(route[3]?.lazy)lazySave();else await store.save()}
   if(out&&out.__raw){res.writeHead(out.__raw.status,out.__raw.headers);return res.end(out.__raw.body)}
   send(res,200,out,ctx.cookie?{"Set-Cookie":ctx.cookie}:{})}
  catch(e){if(e instanceof HttpError){if(e.persist)await Promise.resolve(store.save()).catch(x=>console.error(x));return send(res,e.status,{error:e.message,field:e.field},e.retryAfter?{"Retry-After":String(e.retryAfter)}:{})}

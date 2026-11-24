@@ -1,5 +1,5 @@
 import fs from "node:fs";
-export const defaults = () => ({ users: [], creators: [], bookings: [], payments: [], sessions: {}, events: {}, tokens: {}, audit: [], seq: 1 });
+export const defaults = () => ({ users: [], creators: [], bookings: [], payments: [], sessions: {}, events: {}, tokens: {}, audit: [], metrics: {}, seq: 1 });
 function wrap(d, save, extra = {}) { return { d, id: p => p + (d.seq++), save, ...extra }; }
 
 // File store: fine for tests and a single small server. Synchronous.

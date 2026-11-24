@@ -82,16 +82,18 @@ function fresh() {
   return { store, mailer, service, advance: ms => { t += ms; } };
 }
 const tokenOf = (mailer, i = -1) => mailer.outbox.at(i).text.match(/#t=([\w-]+)/)[1];
-test("email verification: link verifies, unverified users cannot book", async () => {
+test("email verification: link verifies, unverified users can request but cannot pay", async () => {
   const f = fresh(), s = f.service; const u = s.register({ name: "Zed", email: "zed@t.test", password: PW, role: "customer",phone:"9876543210" });
   await new Promise(r => setTimeout(r, 5)); assert.equal(f.mailer.outbox.length, 1); assert.equal(u.emailVerified, false);
   assert.match(f.mailer.outbox[0].text, /https:\/\/x\.test\/verify\.html#t=/);
   const cu = s.register({ name: "Cee", email: "c@t.test", password: PW, role: "creator",phone:"9876543210", area: "Madhapur", types: ["Birthday"] }); const c = f.store.d.creators[0]; c.ver = "verified"; c.pk = [{ n: "Mini", h: 1, d: "25 photos", days: 3, p: 2500 }];
-  throwsS(() => s.makeBooking(u, { creatorId: c.id, pk: 0, date: "2026-11-02", slot: "10:00", type: "Birthday",area:"Madhapur",address:"Flat 402, Lotus Residency, Madhapur" }), 403);
+  const first = s.makeBooking(u, { creatorId: c.id, pk: 0, date: "2026-11-02", slot: "10:00", type: "Birthday",area:"Madhapur",address:"Flat 402, Lotus Residency, Madhapur" });
+  assert.equal(first.status, "Requested", "an unverified customer can send a request");
+  await assert.rejects(() => s.createOrder(u, first.id), e => e.status === 403 && /confirm your email/i.test(e.message));
   assert.throws(() => s.verifyEmail("bad-token"), e => e.status === 400);
   const v = s.verifyEmail(tokenOf(f.mailer, 0)); assert.equal(v.emailVerified, true);
   assert.throws(() => s.verifyEmail(tokenOf(f.mailer, 0)), e => e.status === 400, "single use");
-  assert.ok(s.makeBooking({ ...u, emailVerified: true }, { creatorId: c.id, pk: 0, date: "2026-11-02", slot: "10:00", type: "Birthday",area:"Madhapur",address:"Flat 402, Lotus Residency, Madhapur" }));
+  assert.ok(s.makeBooking({ ...u, emailVerified: true }, { creatorId: c.id, pk: 0, date: "2026-11-02", slot: "16:00", type: "Birthday",area:"Madhapur",address:"Flat 402, Lotus Residency, Madhapur" }));
   assert.equal(cu.emailVerified, false);
 });
 test("email verification: token expires after 48 hours; resend works once verified is false", async () => {
@@ -297,4 +299,13 @@ test("http: failed refund persists state and surfaces to admin", async () => {
   let r = await cath.post(`/api/bookings/${b.id}/cancel`); assert.equal(r.json.booking.status, "Refund pending");
   const pid = (await adm.get("/api/admin/payments")).json.payments[0].id; r = await adm.post(`/api/admin/payments/${pid}/retry-refund`); assert.equal(r.status, 502); assert.match(r.json.error, /provider refused/);
   r = await adm.post(`/api/admin/payments/${pid}/retry-refund`); assert.equal(r.status, 200); assert.equal((await adm.get("/api/admin/overview")).json.stats.failedRefunds, 0); assert.ok(s); await srv.close();
+});
+
+test("funnel: counts page views and clicks, ignores junk, admin only", () => {
+  const f = fresh(), s = f.service;
+  for (const e of ["view:index", "view:index", "cta:hero-book", "cta:hero-book", "cta:hero-book", "bad", "view:../x", "cta:" + "a".repeat(60)]) s.track(e);
+  const r = s.funnel({ id: "a", role: "admin" }, 30);
+  assert.equal(r.views.index, 2); assert.equal(r.clicks["hero-book"], 3);
+  assert.equal(Object.keys(r.views).length + Object.keys(r.clicks).length, 2);
+  assert.throws(() => s.funnel({ id: "u", role: "customer" }, 30), e => e.status === 403);
 });
