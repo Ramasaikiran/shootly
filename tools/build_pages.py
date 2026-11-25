@@ -71,7 +71,7 @@ import html as _h
 def proof():
     if not PROOF:return ''
     cards="".join(f'<figure class="card proof"><blockquote>“{_h.escape(q["quote"])}”</blockquote><figcaption>{_h.escape(q["name"])} · {_h.escape(q["shoot"])}</figcaption></figure>' for q in PROOF)
-    return f'<section class="sect" aria-labelledby="h-proof"><p class="eyebrow">Customers</p><h2 id="h-proof">What customers say</h2><div class="three">{cards}</div></section>'
+    return f'<section class="sect" aria-labelledby="h-proof"><h2 id="h-proof">What customers say</h2><div class="three">{cards}</div></section>'
 def livebar():
     def item(c,dup):
         a=f'<a href="{cpage(c)}" data-cta="where-{c["slug"]}"'+(' tabindex="-1"' if dup else '')+f' title="Photographers in {c["name"]}">{c["name"]}</a>'
@@ -89,13 +89,13 @@ def finder():
 def pricing():
     def card(name,price,unit,pop,d):
         cls="price-card pop" if pop else "price-card"
-        tag='<span class="tag ok">Most booked</span>' if pop else ''
-        return f'<div class="{cls}">{tag}<b>{name}</b><p class="pr">{price}<span>{unit}</span></p><span class="mute">{d}</span></div>'
+        mark='<span class="mark">Most booked</span>' if pop else ''
+        return f'<div class="{cls}"><div><b>{name}{mark}</b><span class="mute">{d}</span></div><p class="pr">{price}<span>{unit}</span></p></div>'
     cards="".join(card(*p) for p in PRICING)
-    return f'<section class="sect" id="pricing" aria-labelledby="h-pricing"><p class="eyebrow">Pricing</p><h2 id="h-pricing">Event reels, delivered in 10 minutes</h2><p class="lede">Birthdays, weddings and ceremonies — shot, edited and delivered before the moment passes.</p><div class="pricing-grid">{cards}</div><p class="micro">Prices are all-in. Final package is set with the creator before you pay.</p></section>'
+    return f'<section class="sect" id="pricing" aria-labelledby="h-pricing"><h2 id="h-pricing">Event reels, delivered in 10 minutes</h2><p class="lede">Birthdays, weddings and ceremonies — shot, edited and delivered before the moment passes.</p><div class="pricing-grid">{cards}</div><p class="micro">Prices are all-in. Final package is set with the creator before you pay.</p></section>'
 def features():
-    items="".join(f'<div class="feat"><b>{n}</b><h3>{t}</h3><p class="mute">{d}</p></div>' for n,t,d in FEATURES)
-    return f'<section class="sect" id="features" aria-labelledby="h-features"><p class="eyebrow">Features</p><h2 id="h-features">Everything you need, inside one app.</h2><div class="feat-grid">{items}</div></section>'
+    items="".join(f'<div class="feat"><h3>{t}</h3><p class="mute">{d}</p></div>' for n,t,d in FEATURES)
+    return f'<section class="sect" id="features" aria-labelledby="h-features"><h2 id="h-features">Everything you need, inside one app.</h2><div class="feat-grid">{items}</div></section>'
 def home():
     faq="".join(f'<details class="q"><summary>{q}</summary><p>{a}</p></details>' for q,a in FAQ)
     cats="".join(f'<a class="cat" href="browse.html?type={n}" data-cta="category-{n.lower()}"><b>{n}</b><span>{d}</span></a>' for n,d in CATS)
@@ -107,14 +107,14 @@ def home():
 </div></section>
 {livebar()}
 <section class="trust" aria-label="Why book with us"><ul>{trust}</ul></section>
-<section class="sect" id="proof" aria-labelledby="h-proof" hidden><p class="eyebrow">Real work, real creators</p><h2 id="h-proof">Recent work from verified creators</h2><p class="mute" id="proofsub"></p><div class="proofgrid" id="proofgrid"></div><p><a class="btn alt" href="browse.html" data-cta="proof-browse">See all creators</a></p></section>
-<section class="sect" id="how" aria-labelledby="h-how"><p class="eyebrow">How it works</p><h2 id="h-how">Three steps. Nothing hidden.</h2>
+<section class="sect" id="proof" aria-labelledby="h-proof" hidden><h2 id="h-proof">Recent work from verified creators</h2><p class="mute" id="proofsub"></p><div class="proofgrid" id="proofgrid"></div><p><a class="btn alt" href="browse.html" data-cta="proof-browse">See all creators</a></p></section>
+<section class="sect" id="how" aria-labelledby="h-how"><h2 id="h-how">Three steps. Nothing hidden.</h2>
 <ol class="steps"><li><h3>Search and compare</h3><p class="mute">Choose shoot type, area and date. See packages, prices and delivery times. No account needed.</p></li><li><h3>Send a request</h3><p class="mute">Create a free account to send it. You can send it right away. The creator accepts or declines. You are not charged yet.</p></li><li><h3>Pay to confirm</h3><p class="mute">Pay when accepted. Your slot is locked. Get your files by the deadline on your booking.</p></li></ol></section>
-<section class="sect" id="shoots" aria-labelledby="h-shoots"><p class="eyebrow">What we cover</p><h2 id="h-shoots">Pick your kind of shoot</h2><div class="cats">{cats}</div></section>
+<section class="sect" id="shoots" aria-labelledby="h-shoots"><h2 id="h-shoots">Pick your kind of shoot</h2><div class="cats">{cats}</div></section>
 {features()}
 {pricing()}
 {proof()}
-<section class="sect" id="faq" aria-labelledby="h-f"><p class="eyebrow">FAQ</p><h2 id="h-f">Questions people ask</h2>{faq}</section>
+<section class="sect" id="faq" aria-labelledby="h-f"><h2 id="h-f">Questions people ask</h2>{faq}</section>
 <section class="sect" style="text-align:center"><h2>Ready for your shoot?</h2><p class="lede" style="margin-inline:auto">Create a free account, see photographers near you and send a request. You pay only after they accept.</p><a class="btn lg" href="auth.html?mode=register&next=customer.html%3Fnear%3D1" data-cta="final-book">Book now</a></section>
 <section class="band2" aria-labelledby="h-c"><h2 id="h-c">Photographer or videographer?</h2><p>Get booking requests from people near you. Set your packages, prices and calendar. See payout status on every shoot. We list a small, reviewed group first.</p><a class="btn" href="auth.html?mode=register" data-cta="creator-band">Apply to be listed</a></section></main>
 <div class="sticky"><a class="btn" href="auth.html?mode=register&next=customer.html%3Fnear%3D1" data-cta="sticky-book">Book now</a></div><script src="landing.js" defer></script><script type="module" src="track.js"></script>'''
@@ -215,10 +215,10 @@ def city_main(c):
 <section class="hero2"><div class="hcopy"><p class="eyebrow">{n}, {c["state"]}</p><h1>Book a verified photographer in {n}. <em>Pay only when they accept.</em></h1><p class="lead">Compare ID-checked photographers and videographers in {n}. See the all-in price and delivery date first.</p>
 <p class="cta"><a class="btn lg" href="{link}" data-cta="city-hero">Find photographers in {n}</a></p><p class="micro">Free to request. No account needed to browse.</p></div>
 <div class="card"><h2 style="margin-top:0">Shoots in {n}</h2><p class="mute">Popular places for a shoot include {c["spots"]}. Your creator can suggest the best spot and time of day.</p>{hoods}<p class="mute">You enter the exact address when you book, so the creator reaches the right place on the date.</p></div></section>
-<section class="sect" aria-labelledby="h-t"><p class="eyebrow">What we cover</p><h2 id="h-t">Pick your kind of shoot in {n}</h2><div class="cats">{types}</div></section>
-<section class="sect" aria-labelledby="h-h"><p class="eyebrow">How it works</p><h2 id="h-h">Three steps. Nothing hidden.</h2><ol class="steps"><li><h3>Search and compare</h3><p class="mute">Choose shoot type and date. See packages, prices and delivery times.</p></li><li><h3>Send a request</h3><p class="mute">Create a free account to send it. You can send it right away. The creator accepts or declines. You are not charged yet.</p></li><li><h3>Pay to confirm</h3><p class="mute">Pay when accepted. Your slot is locked. Get your files by the deadline on your booking.</p></li></ol></section>
-<section class="sect" aria-labelledby="h-f"><p class="eyebrow">FAQ</p><h2 id="h-f">Booking a photographer in {n}</h2>{fq}</section>
-<section class="sect" aria-labelledby="h-o"><p class="eyebrow">Other cities</p><h2 id="h-o">Also on Shootly</h2><div class="cats">{others}</div></section>
+<section class="sect" aria-labelledby="h-t"><h2 id="h-t">Pick your kind of shoot in {n}</h2><div class="cats">{types}</div></section>
+<section class="sect" aria-labelledby="h-h"><h2 id="h-h">Three steps. Nothing hidden.</h2><ol class="steps"><li><h3>Search and compare</h3><p class="mute">Choose shoot type and date. See packages, prices and delivery times.</p></li><li><h3>Send a request</h3><p class="mute">Create a free account to send it. You can send it right away. The creator accepts or declines. You are not charged yet.</p></li><li><h3>Pay to confirm</h3><p class="mute">Pay when accepted. Your slot is locked. Get your files by the deadline on your booking.</p></li></ol></section>
+<section class="sect" aria-labelledby="h-f"><h2 id="h-f">Booking a photographer in {n}</h2>{fq}</section>
+<section class="sect" aria-labelledby="h-o"><h2 id="h-o">Also on Shootly</h2><div class="cats">{others}</div></section>
 <section class="band2" aria-labelledby="h-c"><h2 id="h-c">Photographer or videographer in {n}?</h2><p>Get booking requests from people near you. Set your packages, prices and calendar. See payout status on every shoot.</p><a class="btn" href="auth.html?mode=register" data-cta="city-creator">Apply to be listed</a></section></main>
 <div class="sticky"><a class="btn" href="{link}" data-cta="city-sticky">Find photographers in {n}</a></div><script src="landing.js" defer></script><script type="module" src="track.js"></script>'''
     g=[{"@type":"Service","serviceType":"Photography and videography booking","name":f"Photographers and videographers in {n}","provider":{"@id":SITE+"#org"},"areaServed":cityld(c),"url":SITE+cpage(c)},
