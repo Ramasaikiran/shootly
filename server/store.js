@@ -10,7 +10,27 @@ export function createStore(file) {
 }
 
 // Postgres store: the whole state lives in one JSONB row with a version number.
-// A second server instance that writes first makes this one fail loudly instead of overwriting its data.
+// On platforms like Vercel, more than one server instance can be live at once, each
+// with its own in-memory `d`. When another instance saves first, merge its newer
+// rows into ours (by id, for arrays; by key, for id-keyed objects) and retry the
+// write, instead of failing the whole request. Two instances adding different new
+// records (two people registering at once) both end up saved; the rare case of both
+// editing the exact same record still resolves — last retry to land wins that record.
+function mergeIn(local, remote) {
+  for (const k of Object.keys(remote)) {
+    const rv = remote[k], lv = local[k];
+    if (Array.isArray(rv) && Array.isArray(lv)) {
+      const have = new Set(lv.map(x => x && x.id));
+      for (const item of rv) if (!(item && have.has(item.id))) lv.push(item);
+    } else if (rv && typeof rv === "object" && !Array.isArray(rv) && lv && typeof lv === "object") {
+      for (const kk of Object.keys(rv)) if (!(kk in lv)) lv[kk] = rv[kk];
+    } else if (k === "seq") {
+      local.seq = Math.max(local.seq || 0, remote.seq || 0);
+    } else if (!(k in local)) {
+      local[k] = rv;
+    }
+  }
+}
 export async function createPgStore(pool) {
   await pool.query("CREATE TABLE IF NOT EXISTS shootly_state (id int PRIMARY KEY, data jsonb NOT NULL, version bigint NOT NULL DEFAULT 0, updated_at timestamptz NOT NULL DEFAULT now())");
   const r = await pool.query("SELECT data, version FROM shootly_state WHERE id = 1");
@@ -21,9 +41,13 @@ export async function createPgStore(pool) {
   let chain = Promise.resolve();
   const save = () => {
     const run = chain.then(async () => {
-      const res = await pool.query("UPDATE shootly_state SET data = $1::jsonb, version = version + 1, updated_at = now() WHERE id = 1 AND version = $2 RETURNING version", [JSON.stringify(d), version]);
-      if (!res.rows.length) throw new Error("The database changed under this server. Run only one server instance.");
-      version = Number(res.rows[0].version);
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const res = await pool.query("UPDATE shootly_state SET data = $1::jsonb, version = version + 1, updated_at = now() WHERE id = 1 AND version = $2 RETURNING version", [JSON.stringify(d), version]);
+        if (res.rows.length) { version = Number(res.rows[0].version); return; }
+        const r2 = await pool.query("SELECT data, version FROM shootly_state WHERE id = 1");
+        mergeIn(d, r2.rows[0].data); version = Number(r2.rows[0].version);
+      }
+      throw new Error("The database is under heavy concurrent writes. Try again.");
     });
     chain = run.catch(() => {});
     return run;

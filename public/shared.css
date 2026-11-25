@@ -101,8 +101,15 @@ mark.fill{background:#FFE58A;color:#3a2b00;padding:0 4px;border-radius:3px}
 .price-card .pr{margin:0;font:400 26px var(--fd);color:var(--act);white-space:nowrap}
 .price-card .pr span{font:400 13px var(--fb);color:var(--mute);margin-left:4px}
 .feat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1px;background:var(--line);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
-.feat{background:var(--bg);padding:20px}
-.feat h3{margin:0 0 6px;font:400 19px var(--fd)}
+.feat{background:var(--bg);padding:20px;transition:background .2s}
+.feat:hover{background:var(--card)}
+.feat summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px}
+.feat summary::-webkit-details-marker{display:none}
+.feat summary::before{content:"";width:7px;height:7px;border-right:1.5px solid var(--ac);border-bottom:1.5px solid var(--ac);transform:rotate(-45deg);transition:transform .2s;flex:none}
+.feat[open] summary::before{transform:rotate(45deg)}
+.feat h3{margin:0;font:400 19px var(--fd)}
+.feat p{margin:10px 0 0;animation:pkreveal .18s ease}
+@media (prefers-reduced-motion:reduce){.feat p{animation:none}}
 details.q{border-bottom:1px solid var(--line);padding:14px 0}details.q summary{font-weight:600;cursor:pointer;min-height:32px}details.q p{margin:8px 0 0;max-width:68ch;color:var(--mute)}
 .foot{background:var(--card);border-top:1px solid var(--line);margin-top:64px;padding:44px 0 0;color:var(--mute);font-size:14.5px}
 .fgrid{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1.2fr;gap:28px}@media (max-width:760px){.fgrid{grid-template-columns:1fr 1fr}}
@@ -203,7 +210,21 @@ html{-webkit-text-size-adjust:100%}a,button,select,input,summary{touch-action:ma
 .cta{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0 0}.cta .btn{justify-content:center;text-align:center}
 @media (max-width:640px){.cta .btn{flex:1 1 100%}footer,.foot{padding-bottom:84px}}
 
-.pksel{display:grid;gap:4px;margin-top:6px}.pksel select{width:100%}.pkd{margin:6px 0 10px;font-size:14px}.cc .btn[data-act=book]{width:100%}.nearmsg{margin:0 0 12px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.pksel{position:relative;margin-top:6px}
+.pksel summary{display:flex;justify-content:space-between;align-items:center;gap:10px;list-style:none;cursor:pointer;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:10px 12px;min-height:44px;font-size:14px;color:var(--mute)}
+.pksel summary::-webkit-details-marker{display:none}
+.pksel summary::after{content:"";width:8px;height:8px;border-right:1.5px solid var(--mute);border-bottom:1.5px solid var(--mute);transform:rotate(45deg);transition:transform .2s;flex:none}
+.pksel[open] summary::after{transform:rotate(-135deg)}
+.pksel summary span{font:400 16px var(--fd);color:var(--ink)}
+.pkmenu{list-style:none;margin:4px 0 0;padding:4px;position:absolute;z-index:5;left:0;right:0;background:var(--card);border:1px solid var(--line);border-radius:6px;box-shadow:0 14px 28px -16px rgba(20,16,10,.28);animation:pkreveal .16s ease}
+.pkmenu li{margin:0}
+.pkmenu button{width:100%;text-align:left;background:none;border:0;border-radius:4px;padding:9px 10px;min-height:40px;display:flex;justify-content:space-between;gap:10px;font:400 15px var(--fd);color:var(--ink);cursor:pointer}
+.pkmenu button:hover,.pkmenu button:focus-visible{background:var(--bg)}
+.pkmenu button span{font:400 13px var(--fb);color:var(--ac)}
+@keyframes pkreveal{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.pkmenu{animation:none}}
+.pkd{margin:6px 0 10px;font-size:14px}.cc .btn[data-act=book]{width:100%}.nearmsg{margin:0 0 12px}
 .proofgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin:0 0 16px}.proof{display:grid;gap:6px;padding:10px;text-decoration:none;color:inherit}.proof img{width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;border-radius:10px;display:block}#fromline{font-weight:600}.fun td,.fun th{text-align:left}
 
 /* centred hero + moving city bar */

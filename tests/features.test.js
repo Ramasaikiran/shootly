@@ -242,7 +242,7 @@ test("public creator page: rating, reviews with first names, only verified creat
 });
 
 // ---------- store
-test("pg store: loads, saves with version check, and a second writer is refused", async () => {
+test("pg store: loads, saves with version check, and a second writer's new rows merge in and both land", async () => {
   let row = null; const queries = [];
   const pool = { async query(sql, args) {
     queries.push(sql.slice(0, 20));
@@ -253,7 +253,11 @@ test("pg store: loads, saves with version check, and a second writer is refused"
   } };
   const a = await createPgStore(pool); a.d.users.push({ id: "u1" }); await a.save(); await a.save(); assert.equal(row.version, 2); assert.equal(row.data.users[0].id, "u1");
   const b = await createPgStore(pool); assert.equal(b.d.users[0].id, "u1"); assert.equal(b.d.tokens && typeof b.d.tokens, "object"); b.d.users.push({ id: "u2" }); await b.save();
-  await assert.rejects(a.save(), /one server instance/); assert.equal(a.id("x"), "x" + 1);
+  // a is a second, still-live instance that registered u3 before it knew about b's u2 (the real Vercel scenario).
+  // Its save conflicts, so it merges b's u2 in and retries, rather than failing the whole request.
+  a.d.users.push({ id: "u3" }); await a.save();
+  assert.deepEqual(row.data.users.map(u => u.id).sort(), ["u1", "u2", "u3"]); assert.equal(row.version, 4);
+  assert.equal(a.id("x"), "x" + 1);
 });
 
 // ---------- HTTP layer
