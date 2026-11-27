@@ -96,24 +96,22 @@ def features():
     return f'<section class="sect" id="features" aria-labelledby="h-features"><h2 id="h-features">Everything you need, inside one app.</h2><p class="lede">Tap a card to see what it means for your booking.</p><div class="feat-grid">{items}</div></section>'
 def home():
     faq="".join(f'<details class="q"><summary>{q}</summary><p>{a}</p></details>' for q,a in FAQ)
-    cats="".join(f'<a class="cat" href="browse.html?type={n}" data-cta="category-{n.lower()}"><b>{n}</b><span>{d}</span></a>' for n,d in CATS)
     trust="".join(f'<li>{i}<div><b>{t}</b><span>{d}</span></div></li>' for i,t,d in TRUST)
     return f'''<main id="main" class="wrap">
-<section class="hero2 solo"><div class="hcopy"><h1>Book a verified photographer. <em>Pay only when they accept.</em></h1><p class="lead">ID-checked photographers and videographers near you. See the all-in price and delivery date first.</p>
-<ul class="ticks"><li>ID-verified creators</li><li>All-in prices</li><li>Pay after they accept</li></ul>
-<p class="cta"><a class="btn lg" href="auth.html?mode=register&next=customer.html%3Fnear%3D1" data-cta="hero-book">Book now</a><a class="btn alt" href="browse.html" data-cta="hero-browse">Browse creators</a></p><p class="micro">Free to request. Pay only after the creator accepts.<span id="fromline" hidden></span></p>
+<section class="hero2 solo"><div class="hcopy"><h1>Book a reel-maker. <em>We send the nearest verified creator.</em></h1><p class="lead">Pick your event, date and city. No browsing — we match you with a trained, ID-verified creator nearby.</p>
+<ul class="ticks"><li>ID-verified creators</li><li>Matched for you, no browsing</li><li>Reels delivered in minutes</li></ul>
+<p class="cta"><a class="btn lg" href="auth.html?mode=register&next=customer.html%3Fnear%3D1" data-cta="hero-book">Book now</a><a class="btn alt" href="index.html#pricing" data-cta="hero-pricing">See pricing</a></p><p class="micro">Free to book. Pay once to confirm your creator.<span id="fromline" hidden></span></p>
 </div></section>
 {livebar()}
 <section class="trust" aria-label="Why book with us"><ul>{trust}</ul></section>
-<section class="sect" id="proof" aria-labelledby="h-proof" hidden><h2 id="h-proof">Recent work from verified creators</h2><p class="mute" id="proofsub"></p><div class="proofgrid" id="proofgrid"></div><p><a class="btn alt" href="browse.html" data-cta="proof-browse">See all creators</a></p></section>
+<section class="sect" id="proof" aria-labelledby="h-proof" hidden><h2 id="h-proof">Recent work from verified creators</h2><p class="mute" id="proofsub"></p><div class="proofgrid" id="proofgrid"></div></section>
 <section class="sect" id="how" aria-labelledby="h-how"><h2 id="h-how">Three steps. Nothing hidden.</h2>
-<ol class="steps"><li><h3>Search and compare</h3><p class="mute">Choose shoot type, area and date. See packages, prices and delivery times. No account needed.</p></li><li><h3>Send a request</h3><p class="mute">Create a free account to send it. You can send it right away. The creator accepts or declines. You are not charged yet.</p></li><li><h3>Pay to confirm</h3><p class="mute">Pay when accepted. Your slot is locked. Get your files by the deadline on your booking.</p></li></ol></section>
-<section class="sect" id="shoots" aria-labelledby="h-shoots"><h2 id="h-shoots">Pick your kind of shoot</h2><div class="cats">{cats}</div></section>
+<ol class="steps"><li><h3>Pick your event</h3><p class="mute">Choose a package, your date, time and location. No account needed to look.</p></li><li><h3>We match you</h3><p class="mute">We assign the nearest available verified creator for your slot — no waiting for someone to accept.</p></li><li><h3>Pay to confirm</h3><p class="mute">Pay the all-in price shown and your creator is confirmed, on their way for your date.</p></li></ol></section>
 {features()}
 {pricing()}
 {proof()}
 <section class="sect" id="faq" aria-labelledby="h-f"><h2 id="h-f">Questions people ask</h2>{faq}</section>
-<section class="sect" style="text-align:center"><h2>Ready for your shoot?</h2><p class="lede" style="margin-inline:auto">Create a free account, see photographers near you and send a request. You pay only after they accept.</p><a class="btn lg" href="auth.html?mode=register&next=customer.html%3Fnear%3D1" data-cta="final-book">Book now</a></section>
+<section class="sect" style="text-align:center"><h2>Ready for your event?</h2><p class="lede" style="margin-inline:auto">Create a free account, pick a package and date. We match you with a verified creator — pay once to confirm.</p><a class="btn lg" href="auth.html?mode=register&next=customer.html%3Fnear%3D1" data-cta="final-book">Book now</a></section>
 <section class="band2" aria-labelledby="h-c"><h2 id="h-c">Photographer or videographer?</h2><p>Get booking requests from people near you. Set your packages, prices and calendar. See payout status on every shoot. We list a small, reviewed group first.</p><a class="btn" href="auth.html?mode=register" data-cta="creator-band">Apply to be listed</a></section></main>
 <div class="sticky"><a class="btn" href="auth.html?mode=register&next=customer.html%3Fnear%3D1" data-cta="sticky-book">Book now</a></div><script src="landing.js" defer></script><script type="module" src="track.js"></script>'''
 def cityld(c):return {"@type":"City","name":c["name"],"containedInPlace":{"@type":"AdministrativeArea","name":c["state"],"containedInPlace":{"@type":"Country","name":"India"}},"geo":{"@type":"GeoCoordinates","latitude":c["lat"],"longitude":c["lng"]}}
