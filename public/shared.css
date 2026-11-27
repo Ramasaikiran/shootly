@@ -110,7 +110,7 @@ mark.fill{background:#FFE58A;color:#3a2b00;padding:0 4px;border-radius:3px}
 .feat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
 .feat{all:unset;display:block;cursor:pointer;perspective:900px;box-sizing:border-box}
 .feat:focus-visible .feat-inner{outline:2px solid var(--ac);outline-offset:3px}
-.feat-inner{position:relative;min-height:148px;transition:transform .5s cubic-bezier(.2,.8,.2,1);transform-style:preserve-3d}
+.feat-inner{display:block;position:relative;width:100%;min-height:148px;transition:transform .5s cubic-bezier(.2,.8,.2,1);transform-style:preserve-3d}
 .feat[aria-pressed="true"] .feat-inner{transform:rotateY(180deg)}
 .feat-face{position:absolute;inset:0;backface-visibility:hidden;border:1px solid var(--line);border-radius:4px;padding:20px;display:flex;flex-direction:column;justify-content:center;gap:8px;box-sizing:border-box}
 .feat-f{background:var(--bg)}

@@ -17,12 +17,12 @@ F=lambda t:f'<mark class="fill">[{t}]</mark>'
 CO=F("Company legal name");ADDR=F("Registered address, Hyderabad, Telangana");SUP=F("support@yourdomain.com");GRV=F("Grievance Officer name");GEM=F("grievance@yourdomain.com")
 UPD="26 October 2026"
 FONTS='<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="shared.css"><script src="fonts.js" defer></script>'
-FAQ=[("How do I book a photographer on Shootly?","Pick a shoot type and area, compare verified creators and packages, then send a request. The creator accepts, you pay, and the booking is confirmed."),
-("Which cities do you cover?","We list photographers and videographers in "+CITYNAMES+". Creators list a home area, and you enter your shoot address when you book."),
-("Does it cost anything, and when do I pay?","Requesting a booking is free and customers pay no platform fee. You confirm your email before paying, then pay the all-in package price only after the creator accepts — a request alone never charges you."),
+FAQ=[("How do I book on Shootly?","Pick a package, your date, time and location. We instantly match you with the nearest available verified creator — no browsing, no waiting for someone to accept."),
+("Which cities do you cover?","We match creators in "+CITYNAMES+". You enter your exact shoot address when you book, so your matched creator knows where to arrive."),
+("Does it cost anything, and when do I pay?","Matching is free and there's no platform fee for customers. Confirm your email, then pay the all-in package price to confirm your match — nothing is charged before that."),
 ("What is included in the price?","The price shown is all-in. Each package lists shoot hours, number of edited deliverables and the delivery deadline."),
 ("What if the photographer cancels, or my files arrive late?","If a creator cancels, you are told straight away and shown replacements where available, or a full refund. If files arrive late or not as agreed, report it from your booking — support reviews the record and decides on a fix or a refund. See the Refund and Cancellation Policy for details."),
-("Can I cancel a booking?","Yes, while it is Requested, Accepted or Confirmed. Cancel before the creator accepts and nothing is charged. Cancel after paying and before the shoot starts for a full refund."),
+("Can I cancel a booking?","Yes. Cancel any time before you pay at no charge. Cancel after paying and before the shoot starts for a full refund."),
 ("How are creators verified, and is payment safe?","Creators submit ID and portfolio and are reviewed manually before listing — verification confirms identity, not artistic quality. Payments go through Razorpay; we never see or store your card or UPI details."),
 ("How fast do I get my reel?","Event reels are shot, cut and delivered within 10 minutes of the shoot, so you can post them before the event ends.")]
 def head(title,desc,path,index=True,ld="",city=None):
@@ -122,8 +122,8 @@ def offerld():
     items=[{"@type":"Offer","name":n,"price":price(pr),"priceCurrency":"INR"} if price(pr) else {"@type":"Offer","name":n,"description":"Customised pricing on request"} for n,pr,u,pop,d in PRICING]
     return {"@type":"OfferCatalog","name":"Event reel packages","itemListElement":items}
 def ld():
-    g=[{"@type":"Organization","@id":SITE+"#org","name":"Shootly","url":SITE,"description":"Marketplace to book ID-verified photographers and videographers in "+CITYNAMES+", India.","areaServed":[cityld(c) for c in CITIES]},{"@type":"WebSite","url":SITE,"name":"Shootly","inLanguage":"en-IN"},
-    {"@type":"Service","serviceType":"Photography and videography booking marketplace, with event reels delivered in 10 minutes","provider":{"@id":SITE+"#org"},"areaServed":[cityld(c) for c in CITIES],"hasOfferCatalog":offerld()},
+    g=[{"@type":"Organization","@id":SITE+"#org","name":"Shootly","url":SITE,"description":"Instantly matches you with the nearest ID-verified reel-maker for your event in "+CITYNAMES+", India.","areaServed":[cityld(c) for c in CITIES]},{"@type":"WebSite","url":SITE,"name":"Shootly","inLanguage":"en-IN"},
+    {"@type":"Service","serviceType":"On-demand event reel-maker dispatch, with reels delivered in 10 minutes","provider":{"@id":SITE+"#org"},"areaServed":[cityld(c) for c in CITIES],"hasOfferCatalog":offerld()},
     faqld(FAQ)]
     return ldjson(g)
 STICKY='<style>.sticky{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--card);border-top:1px solid var(--line);padding:10px 18px calc(10px + env(safe-area-inset-bottom,0px));display:none;transform:translateY(110%);transition:transform .25s}.sticky.on{transform:none}@media (max-width:640px){.sticky{display:block}.sticky .btn{width:100%}.foot{margin-bottom:70px}}.three{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}.cta{display:flex;gap:12px;flex-wrap:wrap}.micro{font-size:14px;color:var(--mute);margin:10px 0 0}</style>'
@@ -187,7 +187,7 @@ def legal_main(k):
     return f'<main id="main" class="wrap legal"><p class="crumb"><a href="index.html">Home</a> / {t}</p><h1>{t}</h1><p class="mute">Last updated: {UPD}</p>{toc}{body}</main>',t,d
 import os
 os.chdir('public')
-open('index.html','w').write(head("Book a Verified Photographer in Hyderabad, Vizag & More | Shootly","ID-verified photographers and videographers in Hyderabad, Vizag, Vijayawada and 4 more cities. Event reels delivered in 10 minutes.","",True,ld()+STICKY)+HEADER+home()+FOOTER+"</body></html>")
+open('index.html','w').write(head("Book a Reel-Maker, Matched Instantly | Reels in 10 Min | Shootly","Pick your event, date and city. We instantly match you with the nearest ID-verified creator — reels delivered in 10 minutes. Hyderabad, Vizag and 6 more cities.","",True,ld()+STICKY)+HEADER+home()+FOOTER+"</body></html>")
 for k in LEGAL:
     m,t,d=legal_main(k)
     open(f'{k}.html','w').write("<!-- Draft. Have a lawyer review before launch. Replace every highlighted [placeholder]. -->\n"+head(f"{t} | Shootly",d,f"{k}.html")+HEADER+m+FOOTER+"</body></html>")
