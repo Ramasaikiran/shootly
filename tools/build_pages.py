@@ -42,6 +42,7 @@ FOOTER=f'''<footer class="foot"><div class="wrap fgrid"><div><a class="logo" hre
 <nav aria-label="Legal"><h2>Legal</h2><a href="terms.html">Terms and Conditions</a><a href="privacy.html">Privacy Policy</a><a href="refunds.html">Refund and Cancellation Policy</a><a href="contact.html">Contact and grievance</a></nav></div>
 <div class="wrap fbase"><span>© 2026 Shootly. All rights reserved.</span><span><a href="contact.html">Support and grievance</a></span></div></footer>'''
 CATS=[("Birthday","Parties, cake moments, candid fun"),("Family","Portraits at home or outdoors"),("Graduation","Convocation and campus shoots"),("Reel","Short videos for Instagram"),("Product","Clean photos for your store"),("Restaurant","Food, menu and venue content")]
+def sv(d):return f'<svg class="ti" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{d}</svg>'
 PRICING=[("Hourly","₹1,499","/hr",0,"A quick reel from a 1 hour shoot."),
 ("Half Day","₹3,999","up to 4 hrs",1,"Birthdays, small ceremonies, short events."),
 ("Wedding Basic","₹14,999","1 day",0,"One day, one creator, an edited reel."),
@@ -50,15 +51,14 @@ PRICING=[("Hourly","₹1,499","/hr",0,"A quick reel from a 1 hour shoot."),
 ("Wedding Platinum","₹99,999","4 days",0,"Four days, premium coverage."),
 ("Wedding Luxe","₹1,99,999","full wedding",0,"Every event covered, top creators."),
 ("Business","Customised","on request",0,"Launches, brand shoots, corporate events.")]
-FEATURES=[("01","Verified creators","Every creator is ID-verified, background-checked and tracked live from arrival to delivery."),
-("02","Reels in 10 minutes","Shot, cut and delivered before your event wraps. Share it while the moment is still happening."),
-("03","Live tracking","Track your creator's arrival and shoot status in the app, start to finish."),
-("04","Instant booking","Get confirmation the moment you book. No back and forth."),
-("05","All-in pricing","The price you see is the price you pay. No hidden charges."),
-("06","Trained creators","Every creator is trained for fast turnarounds without cutting quality."),
-("07","Shoot to share","Edited reels land in your hands ready to post, no extra editing needed."),
-("08","Customer support","Support is available on every booking, start to finish.")]
-def sv(d):return f'<svg class="ti" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{d}</svg>'
+FEATURES=[(sv('<path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"/><path d="m9 12 2 2 4-4"/>'),"Verified creators","Every creator is ID-verified, background-checked and tracked live from arrival to delivery."),
+(sv('<circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2"/><path d="M9 2h6"/>'),"Reels in 10 minutes","Shot, cut and delivered before your event wraps. Share it while the moment is still happening."),
+(sv('<path d="M12 22s7-7.2 7-12a7 7 0 1 0-14 0c0 4.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.3"/>'),"Live tracking","Track your creator's arrival and shoot status in the app, start to finish."),
+(sv('<path d="M13 2 4 14h6l-1 8 9-12h-6z"/>'),"Instant booking","Get confirmation the moment you book. No back and forth."),
+(sv('<path d="M4 12V4h8l8 8-8 8z"/><circle cx="8.5" cy="8.5" r="1.2"/>'),"All-in pricing","The price you see is the price you pay. No hidden charges."),
+(sv('<path d="M12 2l2.5 5 5.5.8-4 3.9.9 5.5L12 14.8 7.1 17.2l.9-5.5-4-3.9L9.5 7z"/>'),"Trained creators","Every creator is trained for fast turnarounds without cutting quality."),
+(sv('<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7l1.5-3h5L16 7"/><circle cx="12" cy="13.5" r="3.2"/>'),"Shoot to share","Edited reels land in your hands ready to post, no extra editing needed."),
+(sv('<path d="M4 13v-1a8 8 0 0 1 16 0v1"/><rect x="2.5" y="13" width="4" height="6" rx="1.5"/><rect x="17.5" y="13" width="4" height="6" rx="1.5"/>'),"Customer support","Support is available on every booking, start to finish.")]
 TRUST=[(sv('<path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"/><path d="m9 12 2 2 4-4"/>'),"ID-verified creators","Reviewed by our team before they are listed."),
 (sv('<path d="M4 12V4h8l8 8-8 8z"/><circle cx="8.5" cy="8.5" r="1.2"/>'),"All-in prices","The price you see is the price you pay."),
 (sv('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'),"Pay after they accept","Free to request. No charge until accepted."),
@@ -87,12 +87,13 @@ def pricing():
     def card(name,price,unit,pop,d):
         cls="price-card pop" if pop else "price-card"
         mark='<span class="mark">Most booked</span>' if pop else ''
-        return f'<div class="{cls}"><div><b>{name}{mark}</b><span class="mute">{d}</span></div><p class="pr">{price}<span>{unit}</span></p></div>'
+        return f'<li class="{cls}"><div><b>{name}{mark}</b><span class="mute">{d}</span></div><p class="pr">{price}<span>{unit}</span></p></li>'
     cards="".join(card(*p) for p in PRICING)
-    return f'<section class="sect" id="pricing" aria-labelledby="h-pricing"><h2 id="h-pricing">Event reels, delivered in 10 minutes</h2><p class="lede">Birthdays, weddings and ceremonies — shot, edited and delivered before the moment passes.</p><div class="pricing-grid">{cards}</div><p class="micro">Prices are all-in. Final package is set with the creator before you pay.</p></section>'
+    lo,unit=PRICING[0][1],PRICING[0][2]
+    return f'<section class="sect" id="pricing" aria-labelledby="h-pricing"><h2 id="h-pricing">Event reels, delivered in 10 minutes</h2><p class="lede">Birthdays, weddings and ceremonies — shot, edited and delivered before the moment passes.</p><details class="pxdrop"><summary>From {lo}{unit} — see every package</summary><ul class="pricing-grid">{cards}</ul></details><p class="micro">Prices are all-in. Final package is set with the creator before you pay.</p></section>'
 def features():
-    items="".join(f'<details class="feat"><summary><h3>{t}</h3></summary><p class="mute">{d}</p></details>' for n,t,d in FEATURES)
-    return f'<section class="sect" id="features" aria-labelledby="h-features"><h2 id="h-features">Everything you need, inside one app.</h2><div class="feat-grid">{items}</div></section>'
+    items="".join(f'<button type="button" class="feat" aria-pressed="false"><span class="feat-inner"><span class="feat-face feat-f"><h3>{t}</h3></span><span class="feat-face feat-b">{icon}<span class="mute">{d}</span></span></span></button>' for icon,t,d in FEATURES)
+    return f'<section class="sect" id="features" aria-labelledby="h-features"><h2 id="h-features">Everything you need, inside one app.</h2><p class="lede">Tap a card to see what it means for your booking.</p><div class="feat-grid">{items}</div></section>'
 def home():
     faq="".join(f'<details class="q"><summary>{q}</summary><p>{a}</p></details>' for q,a in FAQ)
     cats="".join(f'<a class="cat" href="browse.html?type={n}" data-cta="category-{n.lower()}"><b>{n}</b><span>{d}</span></a>' for n,d in CATS)
