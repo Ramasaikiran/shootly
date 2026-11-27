@@ -305,6 +305,30 @@ test("http: failed refund persists state and surfaces to admin", async () => {
   r = await adm.post(`/api/admin/payments/${pid}/retry-refund`); assert.equal(r.status, 200); assert.equal((await adm.get("/api/admin/overview")).json.stats.failedRefunds, 0); assert.ok(s); await srv.close();
 });
 
+test("dispatch: auto-assigns the nearest verified, available creator (Uber/Rapido style), lands in Accepted directly, falls back when the nearest is taken, and 409s when nobody is free", async () => {
+  const f = fresh(), s = f.service;
+  const u = s.register({ name: "Dee", email: "dee@t.test", password: PW, role: "customer", phone: "9876543210" });
+  s.register({ name: "Near", email: "near@t.test", password: PW, role: "creator", phone: "9876543211", area: "Gachibowli", types: ["Birthday"] }); // ~5km from Madhapur
+  s.register({ name: "Far", email: "far@t.test", password: PW, role: "creator", phone: "9876543212", area: "Vizag", types: ["Birthday"] }); // ~600km from Madhapur
+  const [near, far] = f.store.d.creators;
+  near.ver = "verified"; near.pk = [{ n: "Mini", h: 1, d: "25 photos", days: 3, p: 2500 }];
+  far.ver = "verified"; far.pk = [{ n: "Mini", h: 1, d: "25 photos", days: 3, p: 2500 }];
+  const book1 = { type: "Birthday", maxPrice: 2500, date: "2026-11-02", slot: "10:00", area: "Madhapur", address: "Flat 402, Lotus Residency, Madhapur" };
+  const b = s.requestDispatch(u, book1);
+  assert.equal(b.status, "Accepted", "a match stands in for acceptance; no Requested-and-wait step");
+  assert.equal(f.store.d.bookings[0].creatorId, near.id, "nearer creator assigned over the farther one");
+  await rejects(s.createOrder(u, b.id), 403); // only gate left is confirming email, not waiting on a creator
+  // Near is now booked for that exact date+slot, so the same request for a second customer falls back to Far.
+  const u2 = s.register({ name: "Row", email: "row@t.test", password: PW, role: "customer", phone: "9876543213" });
+  const b2 = s.requestDispatch(u2, book1);
+  assert.equal(b2.status, "Accepted"); assert.equal(f.store.d.bookings[1].creatorId, far.id, "fell back to the next-nearest once Near was taken");
+  // Both creators are now booked for this slot; a third request for the same date+slot has nobody to assign.
+  const u3 = s.register({ name: "Pat", email: "pat@t.test", password: PW, role: "customer", phone: "9876543214" });
+  throwsS(() => s.requestDispatch(u3, book1), 409);
+  // A price below every creator's package also yields no match (none qualify), and an unlisted type is a 400.
+  throwsS(() => s.requestDispatch(u3, { ...book1, date: "2026-11-03", maxPrice: 100 }), 409);
+  throwsS(() => s.requestDispatch(u3, { ...book1, date: "2026-11-03", type: "Product" }), 409);
+});
 test("funnel: counts page views and clicks, ignores junk, admin only", () => {
   const f = fresh(), s = f.service;
   for (const e of ["view:index", "view:index", "cta:hero-book", "cta:hero-book", "cta:hero-book", "bad", "view:../x", "cta:" + "a".repeat(60)]) s.track(e);

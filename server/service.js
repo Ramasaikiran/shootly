@@ -1,4 +1,4 @@
-import {AREAS,TYPES,SLOTS,stateOf,normPhone,passwordIssues,validEmail} from "../public/policy.js";
+import {AREAS,TYPES,SLOTS,stateOf,normPhone,passwordIssues,validEmail,COORDS,distanceKm} from "../public/policy.js";
 import {hashPassword,verifyPassword,DUMMY_HASH,newToken,sha,encrypt,decrypt} from "./security.js";
 import {memoryUploads,decodeUpload} from "./uploads.js";
 import {scryptSync} from "node:crypto";
@@ -82,6 +82,35 @@ function makeBooking(user,{creatorId,pk,date,slot,type,area,address,landmark,lat
  const b={id:store.id("B"),customerId:user.id,creatorId:c.id,loc:{country:"India",state:stateOf(area),area,address,landmark,...(pin||{})},phone:ph,pkgIdx:pk,pkgId:p.id,pkg:{n:p.n,h:p.h,d:p.d,days:p.days,p:p.p},price:p.p,date,slot,type,status:"Requested",log:["Requested"],delivery:null,review:null,reason:null,offers:null,createdAt:now().toISOString()};D.bookings.push(b);return b}
 function replacements(b){return D.creators.filter(c=>c.ver==="verified"&&c.id!==b.creatorId&&c.types.includes(b.type)&&!slotTaken(c.id,b.date,b.slot))
  .map(c=>({c,i:c.pk.findIndex(p=>p.p<=b.price)})).filter(x=>x.i>=0).map(x=>({creatorId:x.c.id,pk:x.i}))}
+// Uber/Rapido-style dispatch: find the nearest verified, free, qualified creator for this slot, instead of the
+// customer picking one. Origin is the booking's exact pin if given, else the centroid of the shoot area. Distance
+// is from the origin to each candidate creator's own registered area (creators don't carry a live GPS position).
+function pickCreator({type,date,slot,area,lat,lng,maxPrice}){
+ const origin=Number.isFinite(lat)&&Number.isFinite(lng)?[lat,lng]:COORDS[area];
+ if(!origin)return null;
+ const dispatched=(cid)=>D.bookings.some(o=>o.creatorId===cid&&o.date===date&&o.slot===slot&&LIVE.includes(o.status));
+ let pool=D.creators.filter(c=>c.ver==="verified"&&c.types.includes(type)&&c.pk.length&&!blockedOn(c.id,date)&&!dispatched(c.id))
+  .map(c=>({c,i:maxPrice==null?0:c.pk.findIndex(p=>p.p<=maxPrice)})).filter(x=>x.i>=0);
+ if(!pool.length)return null;
+ return pool.map(x=>{const o=COORDS[x.c.area];return{...x,km:o?Math.round(distanceKm(origin[0],origin[1],o[0],o[1])*10)/10:Infinity}}).sort((a,b)=>a.km-b.km)[0];
+}
+// Dispatch booking: customer supplies no creatorId. The server assigns one and the booking lands straight in
+// "Accepted" (the system has already confirmed availability), so payment unlocks immediately — reusing the
+// existing Accepted-onward pipeline (pay, Confirmed, delivery, payout, disputes) unchanged.
+function requestDispatch(user,{type,maxPrice,date,slot,area,address,landmark,lat,lng,phone}){
+ if(user.role!=="customer")throw E(403,"Only customers can book.");
+ if(!validDate(date))throw E(400,"Pick a valid date.","date");if(date<today())throw E(400,"Pick a date from today onwards.","date");if(date>addDays(today(),365))throw E(400,"Pick a date within a year.","date");
+ if(!SLOTS.includes(slot))throw E(400,"Pick a time slot.","slot");if(!TYPES.includes(type))throw E(400,"Pick a valid shoot type.","type");
+ if(!AREAS.includes(area))throw E(400,"Pick the area where the shoot will happen.","area");
+ address=clean(address,300);if(address.length<10)throw E(400,"Enter the full address where the creator should come.","address");landmark=clean(landmark,80);
+ const ph=normPhone(phone||user.phone);if(!ph)throw E(400,"Enter a mobile number the creator can reach on shoot day.","phone");
+ const la=lat===""||lat==null?NaN:+lat,lo=lng===""||lng==null?NaN:+lng,pin=la>=6&&la<=38&&lo>=68&&lo<=98?{lat:Math.round(la*1e5)/1e5,lng:Math.round(lo*1e5)/1e5}:null;
+ const match=pickCreator({type,date,slot,area,lat:pin?.lat,lng:pin?.lng,maxPrice});
+ if(!match)throw E(409,"No creator is available for this date and time yet. Try another slot or date.","date");
+ const{c,i}=match,p=c.pk[i];
+ const au=D.users.find(x=>x.id===user.id);if(au&&!au.phone)au.phone=ph;
+ const b={id:store.id("B"),customerId:user.id,creatorId:c.id,loc:{country:"India",state:stateOf(area),area,address,landmark,...(pin||{})},phone:ph,pkgIdx:i,pkgId:p.id,pkg:{n:p.n,h:p.h,d:p.d,days:p.days,p:p.p},price:p.p,date,slot,type,status:"Accepted",log:["Requested","Matched with "+c.name,"Accepted"],delivery:null,review:null,reason:null,offers:null,matchKm:match.km,createdAt:now().toISOString()};
+ D.bookings.push(b);audit(user,"booking.dispatch",b.id,c.name+" matched at "+match.km+"km");return b}
 // true = refunded, false = provider failed (payment stays refund_failed, retryable), null = nothing to refund
 async function refundPayment(p){if(!p||!["paid","refund_failed"].includes(p.status))return null;
  try{const done=await gateway.findRefund?.(p.paymentId,p.amount),r=done||await gateway.refund(p.paymentId,p.amount);p.status="refunded";p.refundId=r.id;delete p.refundError;return true}
@@ -217,7 +246,7 @@ function stats(u){needAdmin(u);const n=s=>D.bookings.filter(b=>b.status===s).len
  return{bookings:D.bookings.length,completed:n("Completed"),cancelled:n("Cancelled"),disputed:n("Disputed"),refundPending:n("Refund pending"),failedRefunds:D.payments.filter(p=>p.status==="refund_failed").length,
   collected:sum(p=>p.status==="paid"),refunded:sum(p=>p.status==="refunded"),stuck:sum(p=>p.status==="refund_failed"),feeEarned:done.reduce((a,b)=>a+b.price-payoutAmt(b),0),
   payoutsDue:rows.filter(b=>payoutState(b)==="due").reduce((a,b)=>a+payoutAmt(b),0),payoutsHolding:rows.filter(b=>payoutState(b)==="holding").reduce((a,b)=>a+payoutAmt(b),0),payoutsPaid:rows.filter(b=>payoutState(b)==="paid").reduce((a,b)=>a+payoutAmt(b),0)}}
-return{register,recordConsent,createAdmin,login,authenticate,logout,logoutAll,listCreators,getCreator,addPackage,editPackage,deletePackage,setCreatorStatus,makeBooking:(u,b)=>view(makeBooking(u,b),u),listBookings,act,createOrder,verifyPayment,webhook,
+return{register,recordConsent,createAdmin,login,authenticate,logout,logoutAll,listCreators,getCreator,addPackage,editPackage,deletePackage,setCreatorStatus,makeBooking:(u,b)=>view(makeBooking(u,b),u),requestDispatch:(u,b)=>view(requestDispatch(u,b),u),listBookings,act,createOrder,verifyPayment,webhook,
  verifyEmail,resendVerification,forgot,resetPassword,resetPasswordFor,updateName,changePassword,
  updateProfile,setBlocked,addPortfolio,removePortfolio,setIdDoc,readIdDoc,setPayout,
  payouts,markPayoutPaid,adminPayments,listPayments,retryRefund,receipt,adminUsers,setUserDisabled,listAudit,track,funnel,stats,uploads:up,

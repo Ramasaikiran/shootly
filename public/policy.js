@@ -18,4 +18,5 @@ export function passwordScore(pw){if(!pw)return 0;let s=0;if(pw.length>=10)s++;i
 
 export const COORDS={"Madhapur":[17.4487,78.3908],"Banjara Hills":[17.4156,78.4347],"Gachibowli":[17.4401,78.3489],"Hitech City":[17.4435,78.3772],"Secunderabad":[17.4399,78.4983],"Uppal":[17.4058,78.5591],"LB Nagar":[17.3457,78.5522],"Karimnagar":[18.4386,79.1288],"Khammam":[17.2473,80.1514],"Vizag":[17.6868,83.2185],"Vijayawada":[16.5062,80.648],"Guntur":[16.3067,80.4365],"Kurnool":[15.8281,78.0373],"Tirupati":[13.6288,79.4192]};
 // Straight-line distance to the closest listed area. Approximate area centres, good enough to sort creators.
-export function nearestArea(lat,lng){const r=Math.PI/180;let best=null;for(const[a,[la,lo]]of Object.entries(COORDS)){const h=Math.sin((la-lat)*r/2)**2+Math.cos(lat*r)*Math.cos(la*r)*Math.sin((lo-lng)*r/2)**2,km=12742*Math.asin(Math.sqrt(h));if(!best||km<best.km)best={area:a,km:Math.round(km)}}return best}
+export function distanceKm(lat1,lng1,lat2,lng2){const r=Math.PI/180,h=Math.sin((lat2-lat1)*r/2)**2+Math.cos(lat1*r)*Math.cos(lat2*r)*Math.sin((lng2-lng1)*r/2)**2;return 12742*Math.asin(Math.sqrt(h))}
+export function nearestArea(lat,lng){let best=null;for(const[a,[la,lo]]of Object.entries(COORDS)){const km=distanceKm(lat,lng,la,lo);if(!best||km<best.km)best={area:a,km:Math.round(km)}}return best}
