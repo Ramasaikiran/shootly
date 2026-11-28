@@ -58,6 +58,17 @@ test("webhook then browser verify does not double-confirm or double-refund",asyn
  const b=(await cu.post("/api/bookings",{creatorId:o.a.c.id,pk:0,date:"2026-11-02",slot:"10:00",type:"Birthday",area:"Madhapur",address:"Flat 402, Lotus Residency, Madhapur"})).json.booking;await ar.post(`/api/bookings/${b.id}/accept`);const ord=(await cu.post("/api/payments/order",{bookingId:b.id})).json;const co=(await cu.post("/api/payments/mock-checkout",{orderId:ord.orderId})).json;
  const body=JSON.stringify({event:"payment.captured",payload:{payment:{entity:{id:co.paymentId,order_id:ord.orderId,amount:250000}}}});await fetch(srv.base+"/api/payments/webhook",{method:"POST",headers:{"x-razorpay-signature":hmac("mock_webhook",body),"x-razorpay-event-id":"e9"},body});
  const v=await cu.post("/api/payments/verify",{bookingId:b.id,...co});assert.equal(v.json.booking.status,"Confirmed");assert.equal(w.gateway.refunds.length,0);await srv.close()});
+test("dispatch over the real API: auto-assigns the nearer of two creators and pays through the same order/checkout/verify flow, with no accept step",async()=>{const{srv,w,o}=await setup();const cu=await login(srv,"cathy@t.test");
+ const r=await cu.post("/api/bookings/dispatch",{type:"Birthday",maxPrice:2500,date:"2026-11-02",slot:"10:00",area:"Madhapur",address:"Flat 402, Lotus Residency, Madhapur"});
+ assert.equal(r.status,200);const b=r.json.booking;assert.equal(b.status,"Accepted");assert.equal(b.creatorName,"Aarav","Aarav (Madhapur) is nearer than Bina (Gachibowli)");
+ const ord=(await cu.post("/api/payments/order",{bookingId:b.id})).json;const co=(await cu.post("/api/payments/mock-checkout",{orderId:ord.orderId})).json;
+ const v=await cu.post("/api/payments/verify",{bookingId:b.id,...co});assert.equal(v.json.booking.status,"Confirmed");
+ // Aarav is now taken for that exact slot, so a second dispatch request for the same slot falls back to Bina.
+ const r2=await cu.post("/api/bookings/dispatch",{type:"Birthday",maxPrice:2500,date:"2026-11-02",slot:"10:00",area:"Madhapur",address:"Flat 402, Lotus Residency, Madhapur"});
+ assert.equal(r2.json.booking.creatorName,"Bina","fell back to Bina once Aarav was taken for that slot");
+ // and once both are taken for that slot, dispatch reports no one is available rather than double-booking anyone.
+ const r3=await cu.post("/api/bookings/dispatch",{type:"Birthday",maxPrice:2500,date:"2026-11-02",slot:"10:00",area:"Madhapur",address:"Flat 402, Lotus Residency, Madhapur"});
+ assert.equal(r3.status,409);await srv.close()});
 test("persistence: save() writes valid JSON atomically",async()=>{const fs=await import("node:fs"),os=await import("node:os"),path=await import("node:path");const {createStore}=await import("../server/store.js");const f=path.join(os.tmpdir(),"shootly-"+Date.now()+".json");const s=createStore(f);s.d.users.push({id:"u1"});s.save();assert.equal(createStore(f).d.users[0].id,"u1");assert.equal(fs.existsSync(f+".tmp"),false);fs.unlinkSync(f)});
 test("webhook: a failed attempt does not burn the event id (retry succeeds)",async()=>{const{srv,w,o}=await setup();const cu=await login(srv,"cathy@t.test"),ar=await login(srv,"aarav@t.test");
  const b=(await cu.post("/api/bookings",{creatorId:o.a.c.id,pk:0,date:"2026-11-02",slot:"10:00",type:"Birthday",area:"Madhapur",address:"Flat 402, Lotus Residency, Madhapur"})).json.booking;await ar.post(`/api/bookings/${b.id}/accept`);const ord=(await cu.post("/api/payments/order",{bookingId:b.id})).json;

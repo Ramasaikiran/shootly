@@ -46,6 +46,7 @@ const routes=[
 ["GET",/^\/api\/bookings\/(\w+)\/receipt$/,c=>({receipt:service.receipt(U(c),c.m[1])})],
 ["GET","/api/bookings",c=>({bookings:service.listBookings(U(c))})],
 ["POST","/api/bookings",c=>{gate(lim.write,U(c).id);return{booking:service.makeBooking(U(c),c.body)}}],
+["POST","/api/bookings/dispatch",c=>{gate(lim.write,U(c).id);return{booking:service.requestDispatch(U(c),c.body)}}],
 ["POST",/^\/api\/bookings\/([\w]+)\/(\w+)$/,async c=>{gate(lim.write,U(c).id);return{booking:await service.act(U(c),c.m[1],c.m[2],c.body)}}],
 ["POST","/api/payments/order",async c=>{gate(lim.pay,U(c).id);return await service.createOrder(R(c,"customer"),String(c.body.bookingId))}],
 ["POST","/api/payments/mock-checkout",c=>{R(c,"customer");if(!gateway.mock)throw E(404,"Not found.");const p=store.d.payments.find(x=>x.orderId===c.body.orderId),b=p&&store.d.bookings.find(x=>x.id===p.bookingId);
